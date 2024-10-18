@@ -43,16 +43,15 @@ app.use(
 //   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
 //   next();
 // });
-
+app.get("/favicon.ico", (req, res) => {
+  res.sendStatus(204);
+});
 app.use("/api", publicRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
 app.use("/test", (req, res) => {
   sendResponse(res, 200, "success", "test");
 });
 
-app.use("/wat", (req, res) => {
-  return res.redirect("/login");
-});
 // Invalid API path middleware
 app.use((req, res) => {
   sendResponse(res, 404, "fail", "Invalid API path");
