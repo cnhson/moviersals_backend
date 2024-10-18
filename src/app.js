@@ -2,7 +2,8 @@ import express, { json } from "express";
 import cors from "cors";
 import publicRoutes from "./routes/public/index.js";
 import privateRoutes from "./routes/private/index.js";
-import { authenticateJWT } from "./middleware/jwtverify.js";
+import internalRoutes from "./routes/internal/index.js";
+import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import { sendResponse } from "./global/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
@@ -45,6 +46,7 @@ app.get("/favicon.ico", (req, res) => {
   res.sendStatus(204);
 });
 app.use("/api", publicRoutes);
+app.use("/api/internal", authenticateJWT, isPrivileged, internalRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
 app.use("/test", (req, res) => {
   sendResponse(res, 200, "success", "test");

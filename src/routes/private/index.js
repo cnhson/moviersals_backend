@@ -1,7 +1,7 @@
 import { Router } from "express";
 // router.use("/accounts", users);
 import * as funcs from "../../controller/accountCon.js";
-import { authenticateJWT } from "../../middleware/jwtverify.js";
+import { authenticateJWT } from "../../middleware/index.js";
 
 const router = Router();
 router.post("/logout", funcs.logoutAccount);

@@ -1,3 +1,5 @@
+import moment from "moment";
+
 export function generateRandomString(size) {
   let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let result = "";
@@ -27,4 +29,8 @@ export function validateFields(fields) {
 
 export function sendResponse(res, statusCode, result, content) {
   res.status(statusCode).json({ result: result, content: content });
+}
+
+export function getDatetimeNow() {
+  return moment().format("YYYY-MM-DD HH:mm:ss");
 }

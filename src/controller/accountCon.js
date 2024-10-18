@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { dbPool } from "../services/database.js";
 import moment from "../../node_modules/moment/moment.js";
-import { generateRandomString, sendResponse, validateFields } from "../global/index.js";
+import { generateRandomString, sendResponse, validateFields, getDatetimeNow } from "../global/index.js";
 
 export async function createAccount(req, res) {
   const client = await dbPool.connect();
@@ -37,7 +37,7 @@ export async function logoutAccount(req, res) {
   const client = await dbPool.connect();
   try {
     const userid = req.user.info.userId;
-    const logoutDate = moment().format("YYYY-MM-DD HH:mm:ss");
+    const logoutDate = getDatetimeNow();
     const result = await client.query("UPDATE tbloginhistory set logoutdate = $2 WHERE username = $1", [userid, logoutDate]);
     if (result.rowCount > 0) {
       res.cookie("accessToken", "", {
@@ -96,7 +96,7 @@ export async function loginAccount(req, res) {
       });
 
       const requestip = req.ip || (req.headers["x-forwarded-for"] || "").split(",").pop().trim() || req.socket.remoteAddress;
-      const logindate = moment().format("YYYY-MM-DD HH:mm:ss");
+      const logindate = getDatetimeNow();
       await client.query("UPDATE tbloginhistory SET useripaddress = $1, logindate = $2, refreshtoken = $3 WHERE userid = $4", [
         requestip,
         logindate,

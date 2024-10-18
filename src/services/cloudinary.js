@@ -16,3 +16,17 @@ export async function uploadCloudImage(imageFile) {
     throw new Error("Image upload failed: " + error.message);
   }
 }
+
+export async function replaceCLoudImage(imageFile, publicid) {
+  try {
+    const b64 = Buffer.from(imageFile.buffer).toString("base64");
+    const dataURI = "data:" + imageFile.mimetype + ";base64," + b64;
+    await cloudinary.uploader.upload(dataURI, {
+      public_id: publicid,
+      invalidate: true,
+    });
+    return;
+  } catch (error) {
+    throw new Error("Image replace failed: " + error.message);
+  }
+}

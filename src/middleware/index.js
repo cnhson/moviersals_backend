@@ -64,8 +64,8 @@ async function checkValidRefreshToken(refreshToken, userid) {
   }
 }
 
-export default function isAdminRole(req, res, next) {
-  if (req.user.role == "admin") {
+export async function isPrivileged(req, res, next) {
+  if (req.user.role == "admin" || req.user.role == "manager") {
     next();
   } else {
     sendResponse(res, 403, "fail", "No permissions to access requested resource");
