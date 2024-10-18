@@ -17,7 +17,7 @@ app.set("trust proxy", true);
 app.use(cookieParser());
 app.use(json());
 app.use(cors());
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: "/tmp/uploads/" });
 
 /* CROS middleware */
 app.use(
