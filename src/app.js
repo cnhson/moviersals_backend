@@ -6,7 +6,6 @@ import { authenticateJWT } from "./middleware/jwtverify.js";
 import { sendResponse } from "./global/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
-import multer from "multer";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -17,7 +16,6 @@ app.set("trust proxy", true);
 app.use(cookieParser());
 app.use(json());
 app.use(cors());
-const upload = multer({ dest: "/tmp/uploads/" });
 
 /* CROS middleware */
 app.use(

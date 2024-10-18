@@ -7,6 +7,13 @@ export function generateRandomString(size) {
   return result;
 }
 
+export function randomDelay(maxMilisecond) {
+  return new Promise((resolve) => {
+    const delay = Math.floor(Math.random() * maxMilisecond); // Random delay between 0 and 200 ms
+    setTimeout(resolve, delay);
+  });
+}
+
 export function validateFields(fields) {
   let missingKey = [];
   for (const [key, value] of Object.entries(fields)) {

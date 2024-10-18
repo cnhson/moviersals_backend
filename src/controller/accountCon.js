@@ -1,16 +1,14 @@
 import bcrypt from "bcryptjs";
-import * as funcs from "../global/index.js";
 import jwt from "jsonwebtoken";
 import { dbPool } from "../services/database.js";
 import moment from "../../node_modules/moment/moment.js";
-const generateRandomString = funcs.generateRandomString;
-const sendResponse = funcs.sendResponse;
+import { generateRandomString, sendResponse, validateFields } from "../global/index.js";
 
 export async function createAccount(req, res) {
   const client = await dbPool.connect();
   try {
     const { username, password, displayname, email, phonenumber } = req.body;
-    const error = funcs.validateFields({ username, password, displayname, email, phonenumber });
+    const error = validateFields({ username, password, displayname, email, phonenumber });
     if (error) {
       sendResponse(res, 400, "fail", error);
     }
@@ -67,7 +65,7 @@ export async function loginAccount(req, res) {
   const client = await dbPool.connect();
   try {
     const { username, password } = req.body;
-    const error = funcs.validateFields({ username, password });
+    const error = validateFields({ username, password });
     if (error) {
       return sendResponse(res, 400, "fail", error);
     }
@@ -123,7 +121,7 @@ export async function changePassword(req, res) {
   try {
     const userid = req.user.userId;
     const { password, newpassword } = req.body;
-    const error = funcs.validateFields({ password, newpassword });
+    const error = validateFields({ password, newpassword });
     if (error) {
       return sendResponse(res, 200, "fail", error);
     }
