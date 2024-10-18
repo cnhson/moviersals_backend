@@ -1,0 +1,31 @@
+{
+  "name": "moviesals_backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "author": "cnhson <foxthehuman1900@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.29.4",
+    "moviesals_backend": "file:",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.24.0",
+    "nodemon": "^3.1.7"
+  },
+  "scripts": {
+    "startl": "node --env-file=.env src/app.js",
+    "devl": "nodemon --env-file=.env src/app.js",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "description": ""
+}
