@@ -34,3 +34,11 @@ export function sendResponse(res, statusCode, result, content) {
 export function getDatetimeNow() {
   return moment().format("YYYY-MM-DD HH:mm:ss");
 }
+
+export function getPlusHourDateTime(hour) {
+  return moment().add(Number(hour), "hours").format("YYYY-MM-DD HH:mm:ss");
+}
+
+export function getPlusMinuteDateTime(minute) {
+  return moment().add(Number(minute), "minutes").format("YYYY-MM-DD HH:mm:ss");
+}

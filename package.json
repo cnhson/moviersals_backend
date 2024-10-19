@@ -11,10 +11,12 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "google-auth-library": "^9.14.2",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.4",
     "moviesals_backend": "file:",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.15",
     "pg": "^8.13.0"
   },
   "devDependencies": {

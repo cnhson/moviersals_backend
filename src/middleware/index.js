@@ -19,7 +19,7 @@ export async function authenticateJWT(req, res, next) {
     if (err) {
       jwt.verify(refreshToken, refreshSecretKey, (err, user) => {
         if (err) {
-          return sendResponse(res, 400, "fail", "Invalid Token");
+          return sendResponse(res, 401, "fail", "Invalid Token");
         } else {
           const accessToken = jwt.sign({ user }, accessSecretKey, { expiresIn: "1h" });
 
@@ -50,8 +50,7 @@ async function checkValidRefreshToken(refreshToken, userid) {
   try {
     let result = await client.query("SELECT refreshToken FROM tbloginhistory WHERE userid = $1", [userid]);
     if (result.rows.length > 0) {
-      console.log("stored refreshToken", result.rows[0].refreshToken);
-      if (result.rows[0].refreshToken == refreshToken) {
+      if (result.rows[0].refreshtoken == refreshToken) {
         return true;
       }
     }

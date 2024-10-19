@@ -36,7 +36,7 @@ export async function getMovieEpisode(req, res) {
   const client = await dbPool.connect();
   try {
     const { movieid, episodeid } = req.params;
-    const result = await client.query("SELECT * FROM tbmovieepisode WHERE movieid = $1 and episodeid = $2", [movieid, episodeid]);
+    const result = await client.query("SELECT * FROM tbmovieepisode WHERE movieid = $1, episodeid = $2", [movieid, episodeid]);
     const movieEpisode = result.rows;
     sendResponse(res, 200, "success", movieEpisode);
   } catch (err) {

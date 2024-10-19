@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { dbPool } from "../services/database.js";
 import moment from "../../node_modules/moment/moment.js";
-import { generateRandomString, sendResponse, validateFields, getDatetimeNow } from "../global/index.js";
+import { generateRandomString, sendResponse, validateFields, getDatetimeNow, getPlusMinuteDateTime } from "../global/index.js";
+import { sendEmail } from "../services/mailer.js";
 
 export async function createAccount(req, res) {
   const client = await dbPool.connect();
@@ -36,7 +37,7 @@ export async function createAccount(req, res) {
 export async function logoutAccount(req, res) {
   const client = await dbPool.connect();
   try {
-    const userid = req.user.info.userId;
+    const userid = req.user.info.userid;
     const logoutDate = getDatetimeNow();
     const result = await client.query("UPDATE tbloginhistory set logoutdate = $2 WHERE username = $1", [userid, logoutDate]);
     if (result.rowCount > 0) {
@@ -78,8 +79,14 @@ export async function loginAccount(req, res) {
     const user = result.rows[0];
 
     if (bcrypt.compareSync(password, user.password)) {
-      const accessToken = jwt.sign({ userId: user.userid, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
-      const refreshToken = jwt.sign({ userId: user.userid, role: user.role }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+      const accessToken = jwt.sign({ userid: user.userid, role: user.role, isverified: user.isverified }, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      const refreshToken = jwt.sign(
+        { userid: user.userid, role: user.role, isverified: user.isverified },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: "7d" }
+      );
 
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
@@ -119,7 +126,7 @@ export async function loginAccount(req, res) {
 export async function changePassword(req, res) {
   const client = await dbPool.connect();
   try {
-    const userid = req.user.userId;
+    const userid = req.user.userid;
     const { password, newpassword } = req.body;
     const error = validateFields({ password, newpassword });
     if (error) {
@@ -140,6 +147,68 @@ export async function changePassword(req, res) {
     }
   } catch (err) {
     console.log(err);
+    sendResponse(res, 500, "fail", "Internal Server Error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function createEmailVerification(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const userid = req.user.userid;
+    client.query("BEGIN");
+    const result = await client.query("SELECT email FROM tbuserinfo WHERE userid = $1", [userid]);
+    const useremail = result.rows[0].email;
+    const emailToken = generateRandomString(12);
+    const expiredDate = getPlusMinuteDateTime(5);
+    const createddate = getDatetimeNow();
+    await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createddate = $4 WHERE userid = $1", [
+      userid,
+      emailToken,
+      expiredDate,
+      createddate,
+    ]);
+    await client.query("COMMIT");
+    await sendEmail(
+      useremail,
+      "Email verification",
+      `Your email verification token is ${emailToken}, it will expire in 5 minutes at ${expiredDate}!`
+    );
+    sendResponse(res, 200, "success", "Check your email for email verification token");
+  } catch (err) {
+    client.query("ROLLBACK");
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal Server Error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function verifyEmail(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const userid = req.user.userid;
+    const { emailtoken } = req.body;
+    const error = validateFields({ emailtoken });
+    if (error) {
+      return sendResponse(res, 200, "fail", error);
+    }
+    await client.query("BEGIN");
+    const result = await client.query("SELECT emailtoken, expireddate FROM tbemailverification WHERE userid = $1", [userid]);
+    if (result) {
+      const datetimenow = getDatetimeNow();
+      const exireddate = result.rows[0].expireddate;
+      if (moment(datetimenow).isSameOrBefore(exireddate)) {
+        if (result.rows[0].emailtoken == emailtoken)
+          await client.query("UPDATE tbuserinfo SET isverified = true WHERE userid = $1", [userid]);
+        return sendResponse(res, 200, "success", "Email verification successfully");
+      } else return sendResponse(res, 200, "fail", "Email verification expired, please request a new one again");
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    console.log(err);
+    client.query("ROLLBACK");
     sendResponse(res, 500, "fail", "Internal Server Error");
   } finally {
     client.release();
