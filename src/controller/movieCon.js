@@ -2,6 +2,7 @@ import { dbPool } from "../services/database.js";
 import moment from "../../node_modules/moment/moment.js";
 import { sendResponse, validateFields, getDatetimeNow } from "../global/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
+import { driveCreateFolder, uploadVideoToDrive } from "../services/googledrive.js";
 
 export async function getMovieList(req, res) {
   const client = await dbPool.connect();
@@ -21,7 +22,7 @@ export async function getMovieDetail(req, res) {
   const client = await dbPool.connect();
   try {
     const { movieid } = req.params;
-    const result = await client.query("SELECT * FROM tbmovie WHERE id = $1", [movieid]);
+    const result = await client.query("SELECT * FROM tbmovieinfo WHERE id = $1", [movieid]);
     const movieDetail = result.rows[0];
     sendResponse(res, 200, "success", movieDetail);
   } catch (err) {
@@ -62,19 +63,20 @@ export async function uploadImage(req, res) {
 
 export async function uploadMovie(req, res) {
   const client = await dbPool.connect();
-  const { name, description, publisher, publishyear, thumbnail, categories, type, ispremium } = req.body;
-  const error = validateFields({ name, description, publisher, publishyear, thumbnail, categories, type, ispremium });
-  if (error) return sendResponse(res, 200, "fail", error);
-  if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
 
-  const imageUrl = await uploadCloudImage(req.file);
-  const createdDate = getDatetimeNow();
-  await client.query(
-    "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    [name, description, publisher, publishyear, imageUrl, categories, type, ispremium]
-  );
-  sendResponse(res, 200, "success", "Movie uploaded successfully");
   try {
+    const { name, description, publisher, publishyear, categories, type, ispremium } = req.body;
+    const error = validateFields({ name, description, publisher, publishyear, categories, type, ispremium });
+    if (error) return sendResponse(res, 200, "fail", error);
+    if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
+    const folderid = await driveCreateFolder(name);
+    const imageUrl = await uploadCloudImage(req.file);
+    const createdDate = getDatetimeNow();
+    await client.query(
+      "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, folderid, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+      [name, description, publisher, publishyear, imageUrl, categories, type, ispremium, folderid, createdDate]
+    );
+    sendResponse(res, 200, "success", "Movie uploaded successfully");
   } catch (err) {
     console.log(err);
     sendResponse(res, 500, "fail", "Internal server error");
@@ -103,6 +105,37 @@ export async function editMovie(req, res) {
   try {
   } catch (err) {
     await client.query("ROLLBACK");
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal server error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function uploadEpisode(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const videoBuffer = Buffer.from(req.file.buffer);
+    const mimetype = req.file.mimetype;
+    const { movieid, episodeid } = req.body;
+    const error = validateFields({ movieid, episodeid });
+    if (error) return sendResponse(res, 200, "fail", error);
+
+    await client.query("BEGIN");
+    const result = await client.query("SELECT folderid FROM tbmovieinfo WHERE id = $1", [movieid]);
+    const folderid = result.rows[0].folderid;
+    const videoid = await uploadVideoToDrive(videoBuffer, episodeid, folderid, mimetype);
+    const pathToEpisodeVideo = process.env.GOOGLE_DRIVE_FILE_URL + videoid;
+    const createdDate = getDatetimeNow();
+    await client.query("INSERT INTO tbmovieepisode (movieid, episodeid, episodepath, createddate) VALUES ($1, $2, $3, $4)", [
+      movieid,
+      episodeid,
+      pathToEpisodeVideo,
+      createdDate,
+    ]);
+    await client.query("COMMIT");
+    return sendResponse(res, 200, "success", videoid);
+  } catch (err) {
     console.log(err);
     sendResponse(res, 500, "fail", "Internal server error");
   } finally {

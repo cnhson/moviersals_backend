@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 
 const oath2client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
 oath2client.setCredentials({
-  refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+  refresh_token: process.env.GOOGLE_MAIL_REFRESH_TOKEN,
 });
 
 export async function sendEmail(to, subject, text) {
@@ -17,7 +17,7 @@ export async function sendEmail(to, subject, text) {
       user: process.env.GOOGLE_EMAIL,
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+      refreshToken: process.env.GOOGLE_MAIL_REFRESH_TOKEN,
       accessToken: accessToken,
     },
   });
