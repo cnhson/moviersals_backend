@@ -61,7 +61,7 @@ export async function uploadImage(req, res) {
   }
 }
 
-export async function uploadMovie(req, res) {
+export async function createMovieInfo(req, res) {
   const client = await dbPool.connect();
 
   try {
@@ -85,7 +85,7 @@ export async function uploadMovie(req, res) {
   }
 }
 
-export async function editMovie(req, res) {
+export async function editMovieInfo(req, res) {
   const client = await dbPool.connect();
   const { id, name, description, publisher, publishyear, thumbnail, categories, type, ispremium } = req.body;
   const error = validateFields({ name, description, publisher, publishyear, thumbnail, categories, type, ispremium });
@@ -105,6 +105,34 @@ export async function editMovie(req, res) {
   try {
   } catch (err) {
     await client.query("ROLLBACK");
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal server error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteMovieInfo(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const { id } = req.body;
+    await client.query("DELETE FROM tbmovieinfo WHERE id = $1", [id]);
+    sendResponse(res, 200, "success", "Movie deleted successfully");
+  } catch (err) {
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal server error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function categoriesFilter(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const { categories } = req.body;
+    const result = await client.query("SELECT * FROM tbmovieinfo t where t.categories::jsonb @> $1", [categories]);
+    sendResponse(res, 200, "success", result.rows);
+  } catch (err) {
     console.log(err);
     sendResponse(res, 500, "fail", "Internal server error");
   } finally {

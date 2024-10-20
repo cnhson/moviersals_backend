@@ -7,5 +7,8 @@ const router = Router();
 router.post("/login", funcs.loginAccount);
 router.post("/create", funcs.createAccount);
 router.use("/movie/", movieRoutes);
+router.post("/createResetPasswordToken", funcs.createResetPasswordToken);
+router.post("/checkResetPasswordToken", funcs.checkResetPasswordToken);
+router.post("/confirmResetPassword", funcs.verifyResetPassword);
 
 export default router;

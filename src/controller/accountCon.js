@@ -63,6 +63,33 @@ export async function logoutAccount(req, res) {
   }
 }
 
+export async function editAccountInfo(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const { displayname, email, phonenumber } = req.body;
+    const error = validateFields({ displayname, email, phonenumber });
+    if (error) {
+      return sendResponse(res, 400, "fail", error);
+    }
+    const userid = req.user.userid;
+
+    const result = await client.query("UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4 WHERE userid = $1", [
+      userid,
+      displayname,
+      email,
+      phonenumber,
+    ]);
+    if (result.rowCount > 0) {
+      return sendResponse(res, 200, "success", "Edit successfully");
+    }
+  } catch (err) {
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal Server Error");
+  } finally {
+    client.release();
+  }
+}
+
 export async function loginAccount(req, res) {
   const client = await dbPool.connect();
   try {
@@ -201,10 +228,100 @@ export async function verifyEmail(req, res) {
       const datetimenow = getDatetimeNow();
       const exireddate = result.rows[0].expireddate;
       if (moment(datetimenow).isSameOrBefore(exireddate)) {
-        if (result.rows[0].emailtoken == emailtoken)
+        if (result.rows[0].emailtoken == emailtoken) {
+          const result2 = await client.query("Select email from tbuserinfo where userid = $1", [userid]);
+          const useremail = result2.rows[0].email;
+          await client.query("INSERT INTO tbpasswordreset (email) VALUES ($1)", [useremail]);
           await client.query("UPDATE tbuserinfo SET isverified = true WHERE userid = $1", [userid]);
-        return sendResponse(res, 200, "success", "Email verification successfully");
+          return sendResponse(res, 200, "success", "Email verification successfully");
+        }
       } else return sendResponse(res, 200, "fail", "Email verification expired, please request a new one again");
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    console.log(err);
+    client.query("ROLLBACK");
+    sendResponse(res, 500, "fail", "Internal Server Error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function createResetPasswordToken(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const { email } = req.body;
+    const error = validateFields({ email });
+    if (error) {
+      return sendResponse(res, 200, "fail", error);
+    }
+    const passwordResetToken = generateRandomString(18);
+    const expiredDate = getPlusMinuteDateTime(5);
+    const createddate = getDatetimeNow();
+    const result = await client.query("UPDATE tbpasswordreset SET emailtoken = $2, expireddate = $3, createddate = $4 WHERE userid = $1", [
+      email,
+      passwordResetToken,
+      expiredDate,
+      createddate,
+    ]);
+    if (result.rowCount > 0) {
+      await sendEmail(
+        email,
+        "Password reset",
+        `Your password reset link  is ${process.env.FRONTEND_URL}/resetpassword?token=${passwordResetToken}, it will expire in 5 minutes at ${expiredDate}!`
+      );
+      sendResponse(res, 200, "success", "Check your email for password reset");
+    } else {
+      sendResponse(res, 200, "fail", "Email not found");
+    }
+  } catch (err) {
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal Server Error");
+  } finally {
+    client.release();
+  }
+}
+
+export async function checkResetPasswordToken(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const { passwordtoken } = req.body;
+    const error = validateFields({ passwordtoken });
+    if (error) {
+      return sendResponse(res, 200, "fail", error);
+    }
+    const result = await client.query("SELECT expireddate FROM tbpasswordreset WHERE passwordtoken = $1", [passwordtoken]);
+    if (result.rowCount > 0) {
+      const datetimenow = getDatetimeNow();
+      const exireddate = result.rows[0].expireddate;
+      if (moment(datetimenow).isSameOrBefore(exireddate)) {
+        return sendResponse(res, 200, "success", "Exist password reset token");
+      } else return sendResponse(res, 200, "fail", "Expired password reset token");
+    } else return sendResponse(res, 200, "fail", "Invalid password reset token");
+  } catch (err) {
+    console.log(err);
+    sendResponse(res, 500, "fail", "Internal Server Error");
+  }
+}
+
+export async function verifyResetPassword(req, res) {
+  const client = await dbPool.connect();
+  try {
+    const { newpassword, passwordtoken } = req.body;
+    const error = validateFields({ newpassword, passwordtoken });
+    if (error) {
+      return sendResponse(res, 200, "fail", error);
+    }
+    await client.query("BEGIN");
+    const result = await client.query("SELECT email, expireddate FROM tbemailverification WHERE passwordtoken = $1", [passwordtoken]);
+    if (result) {
+      const datetimenow = getDatetimeNow();
+      const exireddate = result.rows[0].expireddate;
+      if (moment(datetimenow).isSameOrBefore(exireddate)) {
+        let hashedpassword = await bcrypt.hash(newpassword, 10);
+        await client.query("UPDATE tbuserinfo SET password = $1 WHERE email = $2", [hashedpassword, result.rows[0].email]);
+        return sendResponse(res, 200, "success", "Reset password successfully");
+      } else return sendResponse(res, 200, "fail", "Reset password expired, please request a new one again");
     }
     await client.query("COMMIT");
   } catch (err) {
