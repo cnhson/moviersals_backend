@@ -258,19 +258,17 @@ export async function createResetPasswordToken(req, res) {
     const passwordResetToken = generateRandomString(18);
     const expiredDate = getPlusMinuteDateTime(5);
     const createddate = getDatetimeNow();
-    const result = await client.query("UPDATE tbpasswordreset SET emailtoken = $2, expireddate = $3, createddate = $4 WHERE userid = $1", [
-      email,
-      passwordResetToken,
-      expiredDate,
-      createddate,
-    ]);
+    const result = await client.query(
+      "UPDATE tbpasswordreset SET passwordtoken = $2, expireddate = $3, createddate = $4 WHERE email = $1",
+      [email, passwordResetToken, expiredDate, createddate]
+    );
     if (result.rowCount > 0) {
       await sendEmail(
         email,
         "Password reset",
-        `Your password reset link  is ${process.env.FRONTEND_URL}/resetpassword?token=${passwordResetToken}, it will expire in 5 minutes at ${expiredDate}!`
+        `Your password reset link  is ${process.env.FRONTEND_URL}/passwordrecovery?token=${passwordResetToken}, it will expire in 5 minutes at ${expiredDate}!`
       );
-      sendResponse(res, 200, "success", "Check your email for password reset");
+      sendResponse(res, 200, "success", "Check your email for password reset link");
     } else {
       sendResponse(res, 200, "fail", "Email not found");
     }
@@ -301,6 +299,8 @@ export async function checkResetPasswordToken(req, res) {
   } catch (err) {
     console.log(err);
     sendResponse(res, 500, "fail", "Internal Server Error");
+  } finally {
+    client.release();
   }
 }
 

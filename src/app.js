@@ -49,6 +49,12 @@ app.use("/api", publicRoutes);
 app.use("/api/internal", authenticateJWT, isPrivileged, internalRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
 app.use("/test", (req, res) => {
+  console.log({
+    total: dbPool.totalCount, // Total clients in the pool
+    idle: dbPool.idleCount, // Clients currently idle in the pool
+    waiting: dbPool.waitingCount, // Clients currently waiting for a connection
+  });
+
   sendResponse(res, 200, "success", "test");
 });
 
