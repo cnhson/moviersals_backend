@@ -7,6 +7,8 @@ import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import { sendResponse } from "./global/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -59,11 +61,13 @@ app.use("/test", (req, res) => {
 });
 
 app.use("/dir", (req, res) => {
+  let usersPath = path.join(process.cwd(), "/upload/test.html");
+  let file = fs.readFileSync(usersPath);
   console.log(
     process.cwd() // Clients currently waiting for a connection
   );
 
-  sendResponse(res, 200, "success", "dir");
+  sendResponse(res, 200, "success", file);
 });
 
 // Invalid API path middleware
