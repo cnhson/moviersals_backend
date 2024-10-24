@@ -58,6 +58,14 @@ app.use("/test", (req, res) => {
   sendResponse(res, 200, "success", "test");
 });
 
+app.use("/dir", (req, res) => {
+  console.log(
+    process.cwd() // Clients currently waiting for a connection
+  );
+
+  sendResponse(res, 200, "success", "dir");
+});
+
 // Invalid API path middleware
 app.use((req, res) => {
   sendResponse(res, 404, "fail", "Invalid API path");
