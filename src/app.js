@@ -61,7 +61,7 @@ app.use("/test", (req, res) => {
 });
 
 app.use("/dir", (req, res) => {
-  let usersPath = path.join(process.cwd(), "/upload/test.html");
+  let usersPath = path.join(process.cwd(), "/uploads/test.html");
   let file = fs.readFileSync(usersPath);
   console.log(
     process.cwd() // Clients currently waiting for a connection
