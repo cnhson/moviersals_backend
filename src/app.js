@@ -61,13 +61,24 @@ app.use("/test", (req, res) => {
 });
 
 app.use("/dir", (req, res) => {
-  let usersPath = path.join(process.cwd(), "/uploads/test.html");
-  let file = fs.readFileSync(usersPath);
-  console.log(
-    process.cwd() // Clients currently waiting for a connection
-  );
+  const currentDir = process.cwd();
+  let result;
+  // Read the contents of the directory
+  fs.readdir(currentDir, { withFileTypes: true }, (err, files) => {
+    if (err) {
+      console.error("Error reading directory:", err);
+      return;
+    }
 
-  sendResponse(res, 200, "success", file);
+    if (files.length === 0) {
+      console.log("No files or directories found in the current directory.");
+    } else {
+      // Filter and list only files
+      result = files.filter((file) => file.isDirectory()).map((file) => file.name);
+      console.log("Files in the current directory:", result);
+    }
+  });
+  sendResponse(res, 200, "success", result);
 });
 
 // Invalid API path middleware
