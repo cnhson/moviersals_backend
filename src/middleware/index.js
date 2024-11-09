@@ -4,13 +4,13 @@ import { dbPool } from "../services/database.js";
 
 export async function authenticateJWT(req, res, next) {
   if (!req.cookies) {
-    return sendResponse(res, 401, "fail", "No cookies found");
+    return sendResponse(res, 401, "success", "No cookies found");
   }
 
   const { accessToken, refreshToken } = req.cookies;
 
   if (!refreshToken) {
-    return sendResponse(res, 401, "fail", "Refresh token is missing");
+    return sendResponse(res, 401, "success", "Refresh token is missing");
   }
 
   const accessSecretKey = process.env.ACCESS_TOKEN_SECRET;
@@ -19,7 +19,7 @@ export async function authenticateJWT(req, res, next) {
     if (err) {
       jwt.verify(refreshToken, refreshSecretKey, (err, user) => {
         if (err) {
-          return sendResponse(res, 401, "fail", "Invalid Token");
+          return sendResponse(res, 401, "success", "Invalid Token");
         } else {
           const accessToken = jwt.sign({ user }, accessSecretKey, { expiresIn: "1h" });
 
@@ -39,7 +39,7 @@ export async function authenticateJWT(req, res, next) {
       const checkValid = await checkValidRefreshToken(refreshToken, user.userid);
       if (checkValid) next();
       else {
-        sendResponse(res, 401, "fail", "Invalid refreshToken");
+        sendResponse(res, 401, "success", "Invalid refreshToken");
       }
     }
   });
@@ -67,6 +67,6 @@ export async function isPrivileged(req, res, next) {
   if (req.user.role == "admin" || req.user.role == "manager") {
     next();
   } else {
-    sendResponse(res, 403, "fail", "No permissions to access requested resource");
+    sendResponse(res, 403, "success", "No permissions to access requested resource");
   }
 }

@@ -20,29 +20,15 @@ const drive = google.drive({
 });
 
 export async function driveCreateFolder(folderName) {
-  // Create the folder
   const fileMetadata = {
     name: folderName,
     mimeType: "application/vnd.google-apps.folder",
   };
-
   const folder = await drive.files.create({
     resource: fileMetadata,
     fields: "id",
   });
-
-  const folderId = folder.data.id; // Get the folder ID
-  // console.log(`Folder created with ID: ${folderId}`);
-
-  // await drive.permissions.create({
-  //   fileId: folderId,
-  //   resource: {
-  //     role: "reader",
-  //     type: "anyone",
-  //   },
-  // });
-
-  // console.log(`Folder permissions set to public. Folder ID: ${folderId}`);
+  const folderId = folder.data.id;
   return folderId;
 }
 
