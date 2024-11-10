@@ -3,9 +3,8 @@ import moment from "../../node_modules/moment/moment.js";
 import {
   generateRandomString,
   sendResponse,
-  validateFields,
   getDatetimeNow,
-  getPlusMinuteDateTime,
+  getExtendDatetime,
   errorHandlerTransaction,
   errorHandler,
 } from "../global/index.js";

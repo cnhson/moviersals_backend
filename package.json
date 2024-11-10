@@ -15,10 +15,12 @@
     "googleapis": "^144.0.0",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.4",
+    "moment-timezone": "^0.5.46",
     "moviesals_backend": "file:",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.15",
-    "pg": "^8.13.0"
+    "pg": "^8.13.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "eslint": "^8.24.0",

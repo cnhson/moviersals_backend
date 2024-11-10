@@ -8,7 +8,31 @@ import { sendResponse } from "./global/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
 import fs from "fs";
-import path from "path";
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({
+  host: "0.0.0.0",
+  port: 8080,
+  perMessageDeflate: {
+    zlibDeflateOptions: {
+      // See zlib defaults.
+      chunkSize: 1024,
+      memLevel: 7,
+      level: 3,
+    },
+    zlibInflateOptions: {
+      chunkSize: 10 * 1024,
+    },
+    // Other options settable:
+    clientNoContextTakeover: true, // Defaults to negotiated value.
+    serverNoContextTakeover: true, // Defaults to negotiated value.
+    serverMaxWindowBits: 10, // Defaults to negotiated value.
+    // Below options specified as default values.
+    concurrencyLimit: 10, // Limits zlib concurrency for perf.
+    threshold: 1024, // Size (in bytes) below which messages
+    // should not be compressed if context takeover is disabled.
+  },
+});
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -94,6 +118,39 @@ dbPool.connect((err) => {
       console.log("Local database connected");
     } else console.log("Supabase database connected");
   }
+});
+
+const clients = {};
+wss.on("connection", (ws) => {
+  console.log("New client connected");
+
+  // Handle incoming messages
+  ws.on("message", (message) => {
+    const parsedMessage = JSON.parse(message.toString());
+
+    switch (parsedMessage.type) {
+      case "connected_user":
+        console.log("Received connected user data:", parsedMessage.data);
+        // Handle connected_user data (e.g., store user info in a session)
+        break;
+
+      case "message":
+        console.log("Received message data:", parsedMessage.data);
+        // Handle chat message, broadcast it, etc.
+        break;
+
+      default:
+        console.log("Unknown message type:", parsedMessage.type);
+    }
+  });
+
+  // Optionally, send a message to confirm connection
+  ws.send(
+    JSON.stringify({
+      type: "connected_user",
+      data: { message: "Connection established" },
+    })
+  );
 });
 
 app.listen(PORT, HOST, () => {

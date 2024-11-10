@@ -1,4 +1,4 @@
-import moment from "moment";
+import moment from "moment-timezone";
 import { dbPool } from "../services/database.js";
 
 class ValidationError extends Error {
@@ -43,12 +43,16 @@ function validateFields(fields) {
   return null;
 }
 
-export function preProcessing(req, schema) {
+export function preProcessingBodyParam(req, schema) {
   const processingParams = buildParams(schema);
   Object.assign(processingParams, req.body);
-
   validateFields(processingParams); // This will throw ValidationError if fields are missing
   return processingParams;
+}
+
+export function preProcessingUrlParam(req) {
+  validateFields(req.params); // This will throw ValidationError if fields are missing
+  return req.params;
 }
 
 export function sendResponse(res, statusCode, result, content) {
@@ -56,15 +60,29 @@ export function sendResponse(res, statusCode, result, content) {
 }
 
 export function getDatetimeNow() {
-  return moment().format("YYYY-MM-DD HH:mm:ss");
+  return moment().tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm:ss");
 }
 
-export function getPlusHourDateTime(hour) {
-  return moment().add(Number(hour), "hours").format("YYYY-MM-DD HH:mm:ss");
+export function getExtendDatetime(day, hour, minute) {
+  return moment()
+    .tz("Asia/Ho_Chi_Minh")
+    .add(Number(day), "days")
+    .add(Number(hour), "hours")
+    .add(Number(minute), "minutes")
+    .format("YYYY-MM-DD HH:mm:ss");
 }
 
-export function getPlusMinuteDateTime(minute) {
-  return moment().add(Number(minute), "minutes").format("YYYY-MM-DD HH:mm:ss");
+export function getReqIpAdress(req) {
+  return req.ip || (req.headers["x-forwarded-for"] || "").split(",").pop().trim() || req.socket.remoteAddress;
+}
+
+export function createToken(res, tokenType, token, milisecond) {
+  return res.cookie(tokenType, token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    maxAge: milisecond,
+  });
 }
 
 export function errorHandler(fn) {

@@ -2,16 +2,16 @@ import {
   generateRandomString,
   sendResponse,
   getDatetimeNow,
-  getPlusMinuteDateTime,
+  getExtendDatetime,
   errorHandlerTransaction,
   errorHandler,
-  preProcessing,
+  preProcessingBodyParam,
 } from "../global/index.js";
 import { episodeSchema } from "../schema/index.js";
 import { uploadVideoToDrive } from "../services/googledrive.js";
 
 export const uploadEpisode_ = errorHandler(async (req, res, next, client) => {
-  const params = preProcessing(req, episodeSchema.uploadEpisode_Params);
+  const params = preProcessingBodyParam(req, episodeSchema.uploadEpisode_Params);
   const result = await client.query("SELECT folderid FROM tbmovieinfo WHERE id = $1", [params.movieid]);
   const folderid = result.rows[0].folderid;
   const videoid = await uploadVideoToDrive(req.file.videoBuffer, params.episodenumber, folderid, req.file.mimetype);
