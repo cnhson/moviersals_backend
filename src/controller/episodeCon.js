@@ -8,19 +8,25 @@ import {
   preProcessingBodyParam,
 } from "../global/index.js";
 import { episodeSchema } from "../schema/index.js";
-import { uploadVideoToDrive } from "../services/googledrive.js";
 
 export const uploadEpisode_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, episodeSchema.uploadEpisode_Params);
   const result = await client.query("SELECT folderid FROM tbmovieinfo WHERE id = $1", [params.movieid]);
-  const folderid = result.rows[0].folderid;
-  const videoid = await uploadVideoToDrive(req.file.videoBuffer, params.episodenumber, folderid, req.file.mimetype);
-  const pathToEpisodeVideo = process.env.GOOGLE_DRIVE_FILE_URL + videoid;
   const createdDateTime = getDatetimeNow();
-  const episodeid = folderid + "_" + params.episodenumber;
+  const episodeid = generateRandomString(10) + "_" + params.episodenumber;
   await client.query(
     "INSERT INTO tbmovieepisode (movieid, episodeid, episodenumber,episodepath, createddate) VALUES ($1, $2, $3, $4, $5)",
-    [params.movieid, episodeid, params.episodenumber, pathToEpisodeVideo, createdDateTime]
+    [params.movieid, episodeid, params.episodenumber, params.episodepath, createdDateTime]
   );
   return sendResponse(res, 200, "success", "Upload movie's episode successfully");
+});
+
+export const editEpisode_ = errorHandler(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, episodeSchema.editEpisode_Params);
+  await client.query("UPDATE tbmovieepisode SET episodepath = $2 WHERE movieid = $1 and episodenumber = $3", [
+    params.movieid,
+    params.episodepath,
+    params.episodenumber,
+  ]);
+  return sendResponse(res, 200, "success", "Edit movie's episode successfully");
 });

@@ -7,5 +7,6 @@ router.post("/logout", funcs.logoutAccount);
 router.post("/changepassword", authenticateJWT, funcs.changePassword);
 router.post("/createEmailVerification", authenticateJWT, funcs.createEmailVerification);
 router.post("/verifyEmail", authenticateJWT, funcs.verifyEmail);
+router.get("/getCurrentUser", authenticateJWT, funcs.getCurrentUser);
 
 export default router;

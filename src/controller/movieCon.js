@@ -7,7 +7,6 @@ import {
   preProcessingUrlParam,
 } from "../global/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
-import { driveCreateFolder, uploadVideoToDrive } from "../services/googledrive.js";
 import { movieSchema } from "../schema/index.js";
 
 export const getMovieList = errorHandler(async (req, res, next, client) => {
@@ -45,11 +44,10 @@ export const uploadImage_ = errorHandler(async (req, res, next, client) => {
 export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.createMovieInfo_Params);
   if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
-  const folderid = await driveCreateFolder(params.name);
   const imageUrl = await uploadCloudImage(req.file);
   const createdDateTime = getDatetimeNow();
   await client.query(
-    "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, folderid, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+    "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     [
       params.name,
       params.description,
@@ -59,7 +57,6 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
       params.categories,
       params.type,
       params.ispremium,
-      folderid,
       createdDateTime,
     ]
   );
