@@ -220,9 +220,9 @@ export const getAllUser_ = errorHandler(async (req, res, next, client) => {
   return sendResponse(res, 200, "success", result.rows);
 });
 
-export const getCurrentUser = errorHandler(async (req, res, next, client) => {
+export const checkAuthenciation = errorHandler(async (req, res, next, client) => {
   const result = await client.query(
-    "SELECT id,userid,username,displayname,email,phonenumber,membership,role,createddate,isverified,isactive FROM tbuserinfo WHERE userid = $1",
+    "SELECT id,userid,username,displayname,email,phonenumber,membership,role,createddate,isverified FROM tbuserinfo WHERE userid = $1",
     [req.user.userid]
   );
   return sendResponse(res, 200, "success", result.rows[0]);
