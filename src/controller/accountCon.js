@@ -4,7 +4,7 @@ import moment from "../../node_modules/moment/moment.js";
 import {
   generateRandomString,
   sendResponse,
-  getDatetimeNow,
+  getStringDatetimeNow,
   getExtendDatetime,
   errorHandlerTransaction,
   errorHandler,
@@ -14,6 +14,7 @@ import {
 } from "../global/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
+import { uploadCloudImage } from "../services/cloudinary.js";
 
 export const createAccount = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.createAccountParams);
@@ -35,7 +36,7 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
 
 export const logoutAccount = errorHandler(async (req, res, next, client) => {
   const userid = req.user.info.userid;
-  const logoutDate = getDatetimeNow();
+  const logoutDate = getStringDatetimeNow();
   const result = await client.query("UPDATE tbloginhistory set logoutdate = $2 WHERE username = $1", [userid, logoutDate]);
   if (result.rowCount > 0) {
     res.cookie("accessToken", "", {
@@ -56,15 +57,13 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
 
 export const editAccountInfo = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.editAccountParams);
-
   const userid = req.user.userid;
-
-  const result = await client.query("UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4 WHERE userid = $1", [
-    userid,
-    params.displayname,
-    params.email,
-    params.phonenumber,
-  ]);
+  const imageUrl = await uploadCloudImage(req.file);
+  const modifiedDateTime = getStringDatetimeNow();
+  const result = await client.query(
+    "UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4, thumbnail = $5, modifieddate = $6 WHERE userid = $1",
+    [userid, params.displayname, params.email, params.phonenumber, imageUrl, modifiedDateTime]
+  );
   if (result.rowCount > 0) return sendResponse(res, 200, "success", "Edit successfully");
   return sendResponse(res, 200, "success", "Edit failed");
 });
@@ -93,7 +92,7 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
     createToken(res, "accessToken", accessToken, 3600 * 1000);
     createToken(res, "refreshToken", refreshToken, 86400 * 7 * 1000);
 
-    const loginDate = getDatetimeNow();
+    const loginDate = getStringDatetimeNow();
     const expireDate = getExtendDatetime(7, 0, 0);
     await client.query(
       "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 WHERE userid = $1",
@@ -130,7 +129,7 @@ export const createEmailVerification = errorHandlerTransaction(async (req, res, 
   const useremail = result.rows[0].email;
   const emailToken = generateRandomString(12);
   const expiredDate = getExtendDatetime(0, 0, 5);
-  const createdDateTime = getDatetimeNow();
+  const createdDateTime = getStringDatetimeNow();
   await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createdDateTime =  $4 WHERE userid = $1", [
     userid,
     emailToken,
@@ -151,7 +150,7 @@ export const verifyEmail = errorHandler(async (req, res, next, client) => {
 
   const result = await client.query("SELECT emailtoken, expireddate FROM tbemailverification WHERE userid = $1", [userid]);
   if (result) {
-    const datetimenow = getDatetimeNow();
+    const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expireddate;
     if (moment(datetimenow).isSameOrBefore(exireddate)) {
       if (result.rows[0].emailtoken == params.emailtoken) {
@@ -170,7 +169,7 @@ export const createResetPasswordToken = errorHandler(async (req, res, next, clie
 
   const passwordResetToken = generateRandomString(18);
   const expiredDate = getExtendDatetime(0, 0, 5);
-  const createdDateTime = getDatetimeNow();
+  const createdDateTime = getStringDatetimeNow();
   const result = await client.query(
     "UPDATE tbpasswordreset SET passwordtoken = $2, expireddate = $3, createdDateTime =  $4 WHERE email = $1",
     [params.email, passwordResetToken, expiredDate, createdDateTime]
@@ -191,7 +190,7 @@ export const checkResetPasswordToken = errorHandler(async (req, res, next, clien
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
   const result = await client.query("SELECT expireddate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result.rowCount > 0) {
-    const datetimenow = getDatetimeNow();
+    const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expireddate;
     if (moment(datetimenow).isSameOrBefore(exireddate)) {
       return sendResponse(res, 200, "success", "Exist password reset token");
@@ -203,7 +202,7 @@ export const verifyResetPassword = errorHandler(async (req, res, next, client) =
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
   const result = await client.query("SELECT email, expireddate FROM tbemailverification WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result) {
-    const datetimenow = getDatetimeNow();
+    const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expireddate;
     if (moment(datetimenow).isSameOrBefore(exireddate)) {
       let hashedpassword = await bcrypt.hash(params.newpassword, 10);
@@ -222,7 +221,7 @@ export const getAllUser_ = errorHandler(async (req, res, next, client) => {
 
 export const checkAuthenciation = errorHandler(async (req, res, next, client) => {
   const result = await client.query(
-    "SELECT id,userid,username,displayname,email,phonenumber,membership,role,createddate,isverified FROM tbuserinfo WHERE userid = $1",
+    "SELECT id,userid,username,displayname,email,phonenumber,membership,role,createddate,isverified, thumbnail FROM tbuserinfo WHERE userid = $1",
     [req.user.userid]
   );
   return sendResponse(res, 200, "success", result.rows[0]);

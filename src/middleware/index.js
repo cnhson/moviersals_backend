@@ -15,12 +15,14 @@ export async function authenticateJWT(req, res, next) {
 
   const accessSecretKey = process.env.ACCESS_TOKEN_SECRET;
   const refreshSecretKey = process.env.REFRESH_TOKEN_SECRET;
-  jwt.verify(accessToken, accessSecretKey, async (err, user) => {
-    if (err) {
-      jwt.verify(refreshToken, refreshSecretKey, (err, user) => {
-        if (err) {
-          return sendResponse(res, 401, "success", "Invalid Token");
+  jwt.verify(refreshToken, refreshSecretKey, async (err, user) => {
+    if (!err) {
+      jwt.verify(accessToken, accessSecretKey, async (err) => {
+        if (!err) {
+          req.user = user;
+          next();
         } else {
+          console.log("Invalid accessToken");
           const accessToken = jwt.sign({ user }, accessSecretKey, { expiresIn: "1h" });
 
           res.cookie("accessToken", accessToken, {
@@ -29,18 +31,13 @@ export async function authenticateJWT(req, res, next) {
             sameSite: "None",
             maxAge: 3600 * 1000,
           });
-        }
-        req.user = user;
 
-        next();
+          req.user = user;
+          next();
+        }
       });
     } else {
-      req.user = user;
-      const checkValid = await checkValidRefreshToken(refreshToken, user.userid);
-      if (checkValid) next();
-      else {
-        sendResponse(res, 401, "success", "Invalid refreshToken");
-      }
+      sendResponse(res, 401, "success", "Unknown refreshToken");
     }
   });
 }
@@ -48,7 +45,7 @@ export async function authenticateJWT(req, res, next) {
 async function checkValidRefreshToken(refreshToken, userid) {
   const client = await dbPool.connect();
   try {
-    let result = await client.query("SELECT refreshToken FROM tbloginhistory WHERE userid = $1", [userid]);
+    let result = await client.query("SELECT refreshToken FROM tbloginhistory WHERE userid = $1 and now() < t.expiredate ", [userid]);
     if (result.rows.length > 0) {
       if (result.rows[0].refreshtoken == refreshToken) {
         return true;

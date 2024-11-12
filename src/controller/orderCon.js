@@ -1,7 +1,7 @@
 import {
   generateRandomString,
   sendResponse,
-  getDatetimeNow,
+  getStringDatetimeNow,
   getExtendDatetime,
   errorHandlerTransaction,
   errorHandler,

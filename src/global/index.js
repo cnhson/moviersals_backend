@@ -26,7 +26,7 @@ export function randomDelay(maxMilisecond) {
 
 function buildParams(fields) {
   return fields.reduce((acc, field) => {
-    acc[field] = "";
+    acc[field] = null;
     return acc;
   }, {});
 }
@@ -34,7 +34,7 @@ function buildParams(fields) {
 function validateFields(fields) {
   let missingKey = [];
   for (const [key, value] of Object.entries(fields)) {
-    if (value == "" || value.length == 0) {
+    if (value == null) {
       missingKey.push(key);
     }
   }
@@ -46,12 +46,12 @@ function validateFields(fields) {
 export function preProcessingBodyParam(req, schema) {
   const processingParams = buildParams(schema);
   Object.assign(processingParams, req.body);
-  validateFields(processingParams); // This will throw ValidationError if fields are missing
+  validateFields(processingParams);
   return processingParams;
 }
 
 export function preProcessingUrlParam(req) {
-  validateFields(req.params); // This will throw ValidationError if fields are missing
+  validateFields(req.params);
   return req.params;
 }
 
@@ -59,8 +59,12 @@ export function sendResponse(res, statusCode, result, content) {
   res.status(statusCode).json({ result: result, content: content });
 }
 
-export function getDatetimeNow() {
+export function getStringDatetimeNow() {
   return moment().tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm:ss");
+}
+
+export function getDatetimeNow() {
+  return moment().tz("Asia/Ho_Chi_Minh");
 }
 
 export function getExtendDatetime(day, hour, minute) {
@@ -70,6 +74,10 @@ export function getExtendDatetime(day, hour, minute) {
     .add(Number(hour), "hours")
     .add(Number(minute), "minutes")
     .format("YYYY-MM-DD HH:mm:ss");
+}
+
+export function convertToMoment(date) {
+  return moment(date).tz("Asia/Ho_Chi_Minh");
 }
 
 export function getReqIpAdress(req) {
@@ -94,9 +102,8 @@ export function errorHandler(fn) {
       if (error instanceof ValidationError) {
         return sendResponse(res, 400, "success", error.message); // No console log for ValidationError
       }
-      next(error);
-      console.log(error);
-      return sendResponse(res, 500, "fail", "Internal server error");
+      console.log("errorhanlder ", error);
+      // return sendResponse(res, 500, "fail", "Internal server error");
     } finally {
       client.release();
     }
@@ -115,7 +122,6 @@ export function errorHandlerTransaction(fn) {
       if (error instanceof ValidationError) {
         return sendResponse(res, 400, "success", error.message); // No console log for ValidationError
       }
-      next(error);
       console.log(error);
       return sendResponse(res, 500, "fail", "Internal server error");
     } finally {

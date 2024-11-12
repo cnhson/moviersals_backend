@@ -3,7 +3,7 @@ import moment from "../../node_modules/moment/moment.js";
 import {
   generateRandomString,
   sendResponse,
-  getDatetimeNow,
+  getStringDatetimeNow,
   getExtendDatetime,
   errorHandlerTransaction,
   errorHandler,

@@ -8,6 +8,9 @@ cloudinary.config({
 
 export async function uploadCloudImage(imageFile) {
   try {
+    if (!imageFile || !imageFile.buffer || imageFile == null) {
+      return null;
+    }
     const b64 = Buffer.from(imageFile.buffer).toString("base64");
     const dataURI = "data:" + imageFile.mimetype + ";base64," + b64;
     const res = await cloudinary.uploader.upload(dataURI);

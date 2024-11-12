@@ -1,6 +1,6 @@
 import {
   sendResponse,
-  getDatetimeNow,
+  getStringDatetimeNow,
   errorHandler,
   errorHandlerTransaction,
   preProcessingBodyParam,
@@ -45,7 +45,7 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.createMovieInfo_Params);
   if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
   const imageUrl = await uploadCloudImage(req.file);
-  const createdDateTime = getDatetimeNow();
+  const createdDateTime = getStringDatetimeNow();
   await client.query(
     "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
     [
@@ -70,7 +70,7 @@ export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, cli
     const storedpublickey = tuhmbnailResult.rows[0].thumbnail.substr(process.env.CLOUD_IMAGE_URL.length);
     await replaceCLoudImage(req.file, storedpublickey);
   }
-  const modifiedDate = getDatetimeNow();
+  const modifiedDate = getStringDatetimeNow();
   await client.query(
     "UPDATE tbmovieinfo SET name = $1, description = $2, publisher = $3, publishyear = $4, categories = $5, type = $6, ispremium = $7, modifieddate = $8 WHERE id = $9",
     [
