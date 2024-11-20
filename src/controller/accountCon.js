@@ -18,14 +18,13 @@ import { uploadCloudImage } from "../services/cloudinary.js";
 
 export const createAccount = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.createAccountParams);
-
-  const userid = generateRandomString(8);
   const role = "customer";
   const hashedPassword = await bcrypt.hash(params.password, 10);
-  await client.query(
-    "INSERT INTO tbuserinfo (userid, username, password, displayname, email, phonenumber, role) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [userid, params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role]
+  const result = await client.query(
+    "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role) VALUES ($1, $2, $3, $4, $5, $6)",
+    [params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role]
   );
+  const userid = result.rows[0].id;
   await client.query("INSERT INTO tbloginhistory (userid) VALUES ($1)", [userid]);
   await client.query("INSERT INTO tbemailverification (userid) VALUES ($1)", [userid]);
   await client.query("INSERT INTO tbusersubscription (userid) VALUES ($1)", [userid]);
@@ -35,7 +34,7 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
 });
 
 export const logoutAccount = errorHandler(async (req, res, next, client) => {
-  const userid = req.user.info.userid;
+  const userid = req.user.userid;
   const logoutDate = getStringDatetimeNow();
   const result = await client.query("UPDATE tbloginhistory set logoutdate = $2 WHERE username = $1", [userid, logoutDate]);
   if (result.rowCount > 0) {
@@ -52,7 +51,7 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
       expires: new Date(0),
     });
     return sendResponse(res, 200, "success", "Logout successfully");
-  }
+  } else return sendResponse(res, 200, "success", "Logout failed");
 });
 
 export const editAccountInfo = errorHandler(async (req, res, next, client) => {

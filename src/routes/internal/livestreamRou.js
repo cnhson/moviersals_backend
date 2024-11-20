@@ -4,8 +4,9 @@ import { multerType } from "../../middleware/multer.js";
 
 const router = Router();
 
-router.post("/upload", multerType("thumbnail"), funcs.createMovieInfo_);
+router.post("/create", multerType("thumbnail"), funcs.createMovieInfo_);
 router.post("/edit", multerType("thumbnail"), funcs.editMovieInfo_);
-router.post("/delete", funcs.deleteMovieInfo_);
+router.post("/end", funcs.deleteMovieInfo_);
+router.post("/increase", funcs.deleteMovieInfo_);
 
 export default router;

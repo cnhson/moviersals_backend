@@ -9,6 +9,12 @@ import {
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
 import { movieSchema } from "../schema/index.js";
 
+export const testUploadImage_ = errorHandler(async (req, res, next, client) => {
+  const imageUrl = await uploadCloudImage(req.file);
+  console.log("Here");
+  sendResponse(res, 200, "success", imageUrl);
+});
+
 export const getMovieList = errorHandler(async (req, res, next, client) => {
   const result = await client.query("SELECT id, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo");
   const movieList = result.rows;

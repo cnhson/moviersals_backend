@@ -22,3 +22,10 @@ export const episodeSchema = {
   uploadEpisode_Params: ["movieid", "episodenumber", "episodepath"],
   editEpisode_Params: ["movieid", "episodenumber", "episodepath"],
 };
+
+export const livestreamSchema = {
+  createLivestream_Params: ["roomname", "creator", "description", "ispremium", "path"],
+  editLivestream_Params: ["id,roomname", "description", "ispremium"],
+  endLivestream_Params: ["id", "roomname", "creator", "isstreaming"],
+  increaseviewLivestream_Params: ["id", "view"],
+};

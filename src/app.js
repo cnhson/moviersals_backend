@@ -7,7 +7,6 @@ import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import { sendResponse } from "./util/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
-import fs from "fs";
 import { WebSocketServer } from "ws";
 
 const wss = new WebSocketServer({
@@ -23,25 +22,31 @@ const wss = new WebSocketServer({
     zlibInflateOptions: {
       chunkSize: 10 * 1024,
     },
-    // Other options settable:
     clientNoContextTakeover: true, // Defaults to negotiated value.
     serverNoContextTakeover: true, // Defaults to negotiated value.
     serverMaxWindowBits: 10, // Defaults to negotiated value.
-    // Below options specified as default values.
     concurrencyLimit: 10, // Limits zlib concurrency for perf.
     threshold: 1024, // Size (in bytes) below which messages
-    // should not be compressed if context takeover is disabled.
   },
 });
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.SERVER_HOST || "127.0.0.1";
-// Specific domain
 const allowedOrigins = JSON.parse(process.env.ALLOW_ORIGINS);
 app.set("trust proxy", true);
 app.use(cookieParser());
 app.use(json());
+
+dbPool.connect((err) => {
+  if (err) {
+    console.log(err);
+  } else {
+    if (process.env.DB_ONLINE_MODE != "true") {
+      console.log("Local database connected");
+    } else console.log("Supabase database connected");
+  }
+});
 
 /* CROS middleware */
 app.use(
@@ -58,15 +63,7 @@ app.use(
     credentials: true,
   })
 );
-// app.use(function (req, res, next) {
-//   const origin = req.headers.origin;
-//   if (allowedOrigins.includes(origin)) {
-//     res.setHeader("Access-Control-Allow-Origin", origin);
-//   }
 
-//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-//   next();
-// });
 app.get("/favicon.ico", (req, res) => {
   res.sendStatus(204);
 });
@@ -74,34 +71,7 @@ app.use("/api", publicRoutes);
 app.use("/api/internal", authenticateJWT, isPrivileged, internalRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
 app.use("/test", (req, res) => {
-  console.log({
-    total: dbPool.totalCount, // Total clients in the pool
-    idle: dbPool.idleCount, // Clients currently idle in the pool
-    waiting: dbPool.waitingCount, // Clients currently waiting for a connection
-  });
-
   sendResponse(res, 200, "success", "test");
-});
-
-app.use("/dir", (req, res) => {
-  const currentDir = process.cwd();
-  let result;
-  // Read the contents of the directory
-  fs.readdir(currentDir, { withFileTypes: true }, (err, files) => {
-    if (err) {
-      console.error("Error reading directory:", err);
-      return;
-    }
-
-    if (files.length === 0) {
-      console.log("No files or directories found in the current directory.");
-    } else {
-      // Filter and list only files
-      result = files.filter((file) => file.isDirectory()).map((file) => file.name);
-      console.log("Files in the current directory:", result);
-    }
-  });
-  sendResponse(res, 200, "success", result);
 });
 
 // Invalid API path middleware
@@ -109,40 +79,44 @@ app.use((req, res) => {
   sendResponse(res, 404, "fail", "Invalid API path");
 });
 
-dbPool.connect((err) => {
-  if (err) {
-    console.log(err);
+let activeChannels = new Set();
+activeChannels.add("livestream_channel");
+activeChannels.add("notification_channel");
+wss.on("connection", (ws, req) => {
+  //_________ ws://localhost:8080?feature=livestream&livestreamId=123
+  let heartbeatTimeout;
+  const params = new URLSearchParams(req.url.slice(1)); // Remove the leading "/"
+
+  console.log("cookie: ", req.headers.cookie);
+  const feature = params.get("feature");
+  const livestreamId = params.get("livestreamId");
+
+  console.log(`New connection: feature=${feature}, livestreamId=${livestreamId}`);
+
+  if (feature === "livestream" && livestreamId) {
+    console.log(`User connected to livestream ${livestreamId}`);
   } else {
-    if (process.env.DB_ONLINE_MODE != "true") {
-      console.log("Local database connected");
-    } else console.log("Supabase database connected");
+    console.log("Invalid feature or livestreamId");
+    ws.close(4000, "Invalid feature or livestreamId");
+    return;
   }
-});
 
-const clients = {};
-wss.on("connection", (ws) => {
-  console.log("New client connected");
-
-  // Handle incoming messages
-  ws.on("message", (message) => {
-    const parsedMessage = JSON.parse(message.toString());
-
-    switch (parsedMessage.type) {
-      case "connected_user":
-        console.log("Received connected user data:", parsedMessage.data);
-        // Handle connected_user data (e.g., store user info in a session)
-        break;
-
-      case "message":
-        console.log("Received message data:", parsedMessage.data);
-        // Handle chat message, broadcast it, etc.
-        break;
-
-      default:
-        console.log("Unknown message type:", parsedMessage.type);
-    }
+  ws.on("close", (code, reason) => {
+    console.log(`Connection closed with code: ${code}, reason: ${reason}`);
   });
 
+  ws.on("message", (message) => {
+    console.log("Received message:", message.toString());
+
+    const jsonmessage = JSON.parse(message.toString());
+
+    if (jsonmessage?.type === "ping") {
+      clearTimeout(heartbeatTimeout);
+      heartbeatTimeout = setTimeout(() => {
+        console.log(`User disconnected due to heartbeat timeout from livestream ${livestreamId}`);
+      }, 5000);
+    }
+  });
   // Optionally, send a message to confirm connection
   ws.send(
     JSON.stringify({
