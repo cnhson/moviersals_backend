@@ -5,7 +5,7 @@ import {
   errorHandlerTransaction,
   preProcessingBodyParam,
   preProcessingUrlParam,
-} from "../global/index.js";
+} from "../util/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
 import { movieSchema } from "../schema/index.js";
 

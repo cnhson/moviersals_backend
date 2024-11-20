@@ -6,7 +6,7 @@ import {
   errorHandlerTransaction,
   errorHandler,
   preProcessingBodyParam,
-} from "../global/index.js";
+} from "../util/index.js";
 import { episodeSchema } from "../schema/index.js";
 
 export const uploadEpisode_ = errorHandler(async (req, res, next, client) => {

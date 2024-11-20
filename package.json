@@ -10,6 +10,7 @@
     "cloudinary": "^2.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
     "express": "^4.21.0",
     "google-auth-library": "^9.14.2",
     "googleapis": "^144.0.0",
@@ -27,8 +28,8 @@
     "nodemon": "^3.1.7"
   },
   "scripts": {
-    "startl": "node --env-file=.env src/app.js",
-    "devl": "nodemon --env-file=.env src/app.js",
+    "startl": "cross-env NODE_ENV=prod node --env-file=.env src/app.js",
+    "devl": "cross-env NODE_ENV=dev nodemon --env-file=.env src/app.js",
     "start": "node src/app.js",
     "dev": "nodemon src/app.js"
   },

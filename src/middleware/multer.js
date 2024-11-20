@@ -1,5 +1,5 @@
 import multer from "multer";
-import { sendResponse } from "../global/index.js";
+import { sendResponse } from "../util/index.js";
 
 export function multerType(inputType, required = true) {
   return async function (req, res, next) {

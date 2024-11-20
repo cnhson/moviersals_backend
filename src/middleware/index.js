@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { sendResponse } from "../global/index.js";
+import { sendResponse } from "../util/index.js";
 import { dbPool } from "../services/database.js";
 
 export async function authenticateJWT(req, res, next) {

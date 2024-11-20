@@ -4,7 +4,7 @@ import publicRoutes from "./routes/public/index.js";
 import privateRoutes from "./routes/private/index.js";
 import internalRoutes from "./routes/internal/index.js";
 import { isPrivileged, authenticateJWT } from "./middleware/index.js";
-import { sendResponse } from "./global/index.js";
+import { sendResponse } from "./util/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
 import fs from "fs";
@@ -42,7 +42,6 @@ const allowedOrigins = JSON.parse(process.env.ALLOW_ORIGINS);
 app.set("trust proxy", true);
 app.use(cookieParser());
 app.use(json());
-app.use(cors());
 
 /* CROS middleware */
 app.use(

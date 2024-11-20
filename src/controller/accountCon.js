@@ -11,7 +11,7 @@ import {
   preProcessingBodyParam,
   createToken,
   getReqIpAdress,
-} from "../global/index.js";
+} from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
 import { uploadCloudImage } from "../services/cloudinary.js";

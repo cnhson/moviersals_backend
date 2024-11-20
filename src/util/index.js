@@ -87,7 +87,7 @@ export function getReqIpAdress(req) {
 export function createToken(res, tokenType, token, milisecond) {
   return res.cookie(tokenType, token, {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV || "prod" ? true : false,
     sameSite: "None",
     maxAge: milisecond,
   });
