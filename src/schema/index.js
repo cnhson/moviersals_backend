@@ -12,8 +12,8 @@ export const accountSchema = {
 export const movieSchema = {
   getMovieDetailParams: ["movieid"],
   getMovieEpisodeParams: ["movieid", "episodeid"],
-  createMovieInfo_Params: ["name", "description", "publisher", "publishyear", "thumbnail", "categories", "type", "ispremium"],
-  editMovieInfo_Params: ["id", "name", "description", "publisher", "publishyear", "thumbnail", "categories", "type", "ispremium"],
+  createMovieInfo_Params: ["name", "description", "publisher", "publishyear", "categories", "type", "ispremium"],
+  editMovieInfo_Params: ["id", "name", "description", "publisher", "publishyear", "categories", "type", "ispremium"],
   deleteMovieInfo_Params: ["id"],
   categoriesFilterParams: ["categories"],
 };
