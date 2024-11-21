@@ -21,7 +21,7 @@ export const movieSchema = {
 export const episodeSchema = {
   uploadEpisode_Params: ["movieid", "episodenumber", "episodepath"],
   editEpisode_Params: ["movieid", "episodenumber", "episodepath"],
-  increaseEpisodeViewParams: ["movieid", "episodenumber", "episodepath"],
+  increaseEpisodeViewParams: ["movieid", "episodeid"],
 };
 
 export const livestreamSchema = {

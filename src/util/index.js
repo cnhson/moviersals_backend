@@ -80,7 +80,7 @@ export function convertToMoment(date) {
   return moment(date).tz("Asia/Ho_Chi_Minh");
 }
 
-export function getReqIpAdress(req) {
+export function getReqIpAddress(req) {
   return req.ip || (req.headers["x-forwarded-for"] || "").split(",").pop().trim() || req.socket.remoteAddress;
 }
 

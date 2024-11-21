@@ -6,6 +6,7 @@ import {
   errorHandlerTransaction,
   errorHandler,
   preProcessingBodyParam,
+  getReqIpAddress,
 } from "../util/index.js";
 import { episodeSchema } from "../schema/index.js";
 
@@ -28,4 +29,21 @@ export const editEpisode_ = errorHandler(async (req, res, next, client) => {
     params.episodenumber,
   ]);
   return sendResponse(res, 200, "success", "Edit movie's episode successfully");
+});
+
+export const increaseEpisodeView = errorHandlerTransaction(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, episodeSchema.increaseEpisodeViewParams);
+  const userid = req.user.userid;
+  const ipaddress = getReqIpAddress(req);
+  const result = await client.query(
+    "INSERT INTO tbwatchhistory (userid, movieid, episodeid, ipaddress) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+    [userid, params.movieid, params.episodeid, ipaddress]
+  );
+  if (result.rowCount === 1) {
+    await client.query("UPDATE tbmovieepisode SET view = view + 1 WHERE episodeid = $1 and movieid = $2", [
+      params.episodeid,
+      params.movieid,
+    ]);
+  }
+  return sendResponse(res, 200, "success", "Done");
 });

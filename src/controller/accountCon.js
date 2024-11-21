@@ -10,7 +10,7 @@ import {
   errorHandler,
   preProcessingBodyParam,
   createToken,
-  getReqIpAdress,
+  getReqIpAddress,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -37,7 +37,7 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
   console.log(req.user);
   const logoutDate = getStringDatetimeNow();
-  const result = await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 WHERE userid = $1", [
+  const result = await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 where id = $1", [
     userid,
     logoutDate,
   ]);
@@ -64,7 +64,7 @@ export const editAccountInfo = errorHandler(async (req, res, next, client) => {
   const imageUrl = await uploadCloudImage(req.file);
   const modifiedDateTime = getStringDatetimeNow();
   const result = await client.query(
-    "UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4, thumbnail = $5, modifieddate = $6 WHERE userid = $1",
+    "UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4, thumbnail = $5, modifieddate = $6 where id = $1",
     [userid, params.displayname, params.email, params.phonenumber, imageUrl, modifiedDateTime]
   );
   if (result.rowCount > 0) return sendResponse(res, 200, "success", "Edit successfully");
@@ -73,7 +73,7 @@ export const editAccountInfo = errorHandler(async (req, res, next, client) => {
 
 export const loginAccount = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.loginAccountParams);
-  const requestip = getReqIpAdress(req);
+  const requestip = getReqIpAddress(req);
   console.log(requestip);
   const activecheck = await client.query('select "isactive" = false as check from tbuserinfo t where t.username = $1', [params.username]);
   if (activecheck.rows[0].check) return sendResponse(res, 200, "success", "Account is locked");
@@ -97,10 +97,13 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
 
     const loginDate = getStringDatetimeNow();
     const expireDate = getExtendDatetime(7, 0, 0);
-    await client.query(
-      "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 WHERE userid = $1",
-      [user.userid, requestip, loginDate, refreshToken, expireDate]
-    );
+    await client.query("UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where id = $1", [
+      user.userid,
+      requestip,
+      loginDate,
+      refreshToken,
+      expireDate,
+    ]);
     return sendResponse(res, 200, "success", "Login successfully");
   } else {
     return sendResponse(res, 200, "success", "Login failed");
@@ -111,14 +114,14 @@ export const changePassword = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
   const params = preProcessingBodyParam(req, accountSchema.changePasswordParams);
 
-  const result = await client.query("SELECT password FROM tbuserinfo WHERE userid = $1", [userid]);
+  const result = await client.query("SELECT password FROM tbuserinfo where id = $1", [userid]);
   if (result) {
     let checkPassword = bcrypt.compareSync(params.oldpassword, result.rows[0].password);
     if (!checkPassword) {
       sendResponse(res, 200, "success", "Current password is incorrect");
     } else {
       let newHashedPassword = await bcrypt.hash(params.newpassword, 10);
-      const updateResult = await client.query("UPDATE tbuserinfo SET password = $2 WHERE userid = $1", [userid, newHashedPassword]);
+      const updateResult = await client.query("UPDATE tbuserinfo SET password = $2 where id = $1", [userid, newHashedPassword]);
       if (updateResult.rowCount > 0) {
         sendResponse(res, 200, "success", "Change password successfully");
       }
@@ -128,12 +131,12 @@ export const changePassword = errorHandler(async (req, res, next, client) => {
 
 export const createEmailVerification = errorHandlerTransaction(async (req, res, next, client) => {
   const userid = req.user.userid;
-  const result = await client.query("SELECT email FROM tbuserinfo WHERE userid = $1", [userid]);
+  const result = await client.query("SELECT email FROM tbuserinfo where id = $1", [userid]);
   const useremail = result.rows[0].email;
   const emailToken = generateRandomString(12);
   const expiredDate = getExtendDatetime(0, 0, 5);
   const createdDateTime = getStringDatetimeNow();
-  await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createdDateTime =  $4 WHERE userid = $1", [
+  await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createdDateTime =  $4 where id = $1", [
     userid,
     emailToken,
     expiredDate,
@@ -151,7 +154,7 @@ export const verifyEmail = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
   const params = preProcessingBodyParam(req, accountSchema.verifyEmailParams);
 
-  const result = await client.query("SELECT emailtoken, expireddate FROM tbemailverification WHERE userid = $1", [userid]);
+  const result = await client.query("SELECT emailtoken, expireddate FROM tbemailverification where id = $1", [userid]);
   if (result) {
     const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expireddate;
@@ -160,7 +163,7 @@ export const verifyEmail = errorHandler(async (req, res, next, client) => {
         const result2 = await client.query("Select email from tbuserinfo where userid = $1", [userid]);
         const useremail = result2.rows[0].email;
         await client.query("INSERT INTO tbpasswordreset (email) VALUES ($1)", [useremail]);
-        await client.query("UPDATE tbuserinfo SET isverified = true WHERE userid = $1", [userid]);
+        await client.query("UPDATE tbuserinfo SET isverified = true where id = $1", [userid]);
         return sendResponse(res, 200, "success", "Email verification successfully");
       }
     } else return sendResponse(res, 200, "success", "Email verification expired, please request a new one again");
@@ -217,14 +220,14 @@ export const verifyResetPassword = errorHandler(async (req, res, next, client) =
 
 export const getAllUser_ = errorHandler(async (req, res, next, client) => {
   const result = await client.query(
-    "SELECT id,userid,username,displayname,email,phonenumber,membership,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin'"
+    "SELECT id,username,displayname,email,phonenumber,membership,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin'"
   );
   return sendResponse(res, 200, "success", result.rows);
 });
 
 export const checkAuthenciation = errorHandler(async (req, res, next, client) => {
   const result = await client.query(
-    "SELECT id,userid,username,displayname,email,phonenumber,membership,role,createddate,isverified, thumbnail FROM tbuserinfo WHERE userid = $1",
+    "SELECT id,username,displayname,email,phonenumber,membership,role,createddate,isverified, thumbnail FROM tbuserinfo where id = $1",
     [req.user.userid]
   );
   return sendResponse(res, 200, "success", result.rows[0]);
