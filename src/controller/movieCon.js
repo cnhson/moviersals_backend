@@ -5,6 +5,7 @@ import {
   errorHandlerTransaction,
   preProcessingBodyParam,
   preProcessingUrlParam,
+  convertToPlainText,
 } from "../util/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
 import { movieSchema } from "../schema/index.js";
@@ -16,14 +17,14 @@ export const testUploadImage_ = errorHandler(async (req, res, next, client) => {
 });
 
 export const getMovieList = errorHandler(async (req, res, next, client) => {
-  const result = await client.query("SELECT id, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo");
+  const result = await client.query("SELECT id, movieid, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo");
   const movieList = result.rows;
   sendResponse(res, 200, "success", movieList);
 });
 
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.checkResetPasswordToken);
-  const result = await client.query("SELECT * FROM tbmovieinfo WHERE id = $1", [params.movieid]);
+  const result = await client.query("SELECT * FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
   const movieDetail = result.rows[0];
   sendResponse(res, 200, "success", movieDetail);
 });
@@ -52,8 +53,9 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
   if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
   const imageUrl = await uploadCloudImage(req.file);
   const createdDateTime = getStringDatetimeNow();
+  const movieid = convertToPlainText(params.name);
   await client.query(
-    "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, createddate, movieid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
     [
       params.name,
       params.description,
@@ -64,6 +66,7 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
       params.type,
       params.ispremium,
       createdDateTime,
+      movieid,
     ]
   );
   sendResponse(res, 200, "success", "Movie uploaded successfully");
@@ -72,7 +75,7 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
 export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.editMovieInfo_Params);
   if (req.file) {
-    const tuhmbnailResult = await client.query("SELECT thumbnail FROM tbmovieinfo WHERE id = $1", [params.id]);
+    const tuhmbnailResult = await client.query("SELECT thumbnail FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
     const storedpublickey = tuhmbnailResult.rows[0].thumbnail.substr(process.env.CLOUD_IMAGE_URL.length);
     await replaceCLoudImage(req.file, storedpublickey);
   }
@@ -88,7 +91,7 @@ export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, cli
       params.type,
       params.ispremium,
       modifiedDate,
-      params.id,
+      params.movieid,
     ]
   );
   sendResponse(res, 200, "success", "Movie uploaded successfully");
@@ -96,7 +99,7 @@ export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, cli
 
 export const deleteMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.deleteMovieInfo_Params);
-  await client.query("DELETE FROM tbmovieinfo WHERE id = $1", [params.id]);
+  await client.query("DELETE FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
   sendResponse(res, 200, "success", "Movie deleted successfully");
 });
 
