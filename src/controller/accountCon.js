@@ -35,8 +35,12 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
 
 export const logoutAccount = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
+  console.log(req.user);
   const logoutDate = getStringDatetimeNow();
-  const result = await client.query("UPDATE tbloginhistory set logoutdate = $2 WHERE username = $1", [userid, logoutDate]);
+  const result = await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 WHERE userid = $1", [
+    userid,
+    logoutDate,
+  ]);
   if (result.rowCount > 0) {
     res.cookie("accessToken", "", {
       httpOnly: true,
@@ -81,10 +85,10 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
   if (bcrypt.compareSync(params.password, user.password)) {
     let accessToken, refreshToken;
 
-    accessToken = jwt.sign({ userid: user.userid, role: user.role, isverified: user.isverified }, process.env.ACCESS_TOKEN_SECRET, {
+    accessToken = jwt.sign({ userid: user.id, role: user.role, isverified: user.isverified }, process.env.ACCESS_TOKEN_SECRET, {
       expiresIn: "1h",
     });
-    refreshToken = jwt.sign({ userid: user.userid, role: user.role, isverified: user.isverified }, process.env.REFRESH_TOKEN_SECRET, {
+    refreshToken = jwt.sign({ userid: user.id, role: user.role, isverified: user.isverified }, process.env.REFRESH_TOKEN_SECRET, {
       expiresIn: "7d",
     });
 

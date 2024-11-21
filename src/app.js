@@ -36,7 +36,13 @@ const HOST = process.env.SERVER_HOST || "127.0.0.1";
 const allowedOrigins = JSON.parse(process.env.ALLOW_ORIGINS);
 app.set("trust proxy", true);
 app.use(cookieParser());
-app.use(json());
+// app.use(json());
+app.use(
+  express.urlencoded({
+    extended: false,
+  })
+);
+app.use(express.json());
 
 dbPool.connect((err) => {
   if (err) {
