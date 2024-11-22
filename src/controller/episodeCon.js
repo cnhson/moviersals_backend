@@ -15,8 +15,8 @@ export const uploadEpisode_ = errorHandler(async (req, res, next, client) => {
   const createdDateTime = getStringDatetimeNow();
   const episodeid = params.movieid + "_" + params.episodenumber;
   await client.query(
-    "INSERT INTO tbmovieepisode (movieid, episodeid, episodenumber,episodepath, createddate) VALUES ($1, $2, $3, $4, $5)",
-    [params.movieid, episodeid, params.episodenumber, params.episodepath, createdDateTime]
+    "INSERT INTO tbmovieepisode (movieid, episodeid, name, episodenumber,episodepath, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
+    [params.movieid, episodeid, params.name, params.episodenumber, params.episodepath, createdDateTime]
   );
   return sendResponse(res, 200, "success", "Upload movie's episode successfully");
 });

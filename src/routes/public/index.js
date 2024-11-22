@@ -1,14 +1,20 @@
 import { Router } from "express";
-import * as funcs from "../../controller/accountCon.js";
-import movieRoutes from "./movieRou.js";
+import * as accountCon from "../../controller/accountCon.js";
+import * as movieCon from "../../controller/movieCon.js";
 
 const router = Router();
-router.post("/login", funcs.loginAccount);
-router.post("/create", funcs.createAccount);
-router.post("/createResetPasswordToken", funcs.createResetPasswordToken);
-router.post("/checkResetPasswordToken", funcs.checkResetPasswordToken);
-router.post("/confirmResetPassword", funcs.verifyResetPassword);
 
-router.use("/movie/", movieRoutes);
+// Account
+router.post("/login", accountCon.loginAccount);
+router.post("/create", accountCon.createAccount);
+router.post("/createResetPasswordToken", accountCon.createResetPasswordToken);
+router.post("/checkResetPasswordToken", accountCon.checkResetPasswordToken);
+router.post("/confirmResetPassword", accountCon.verifyResetPassword);
+
+// Movie
+router.get("/movie/getAll", movieCon.getMovieList);
+router.get("/movie/detail/:movieid", movieCon.getMovieDetail);
+router.get("/movie/watch/:movieid/:episodeid", movieCon.getMovieEpisode);
+router.post("/movie/filter", movieCon.categoriesFilter);
 
 export default router;

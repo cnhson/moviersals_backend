@@ -1,13 +1,21 @@
 import { Router } from "express";
-import * as funcs from "../../controller/accountCon.js";
-import accountRoutes from "./accountRou.js";
-import episodeRoutes from "./episodeRou.js";
+import * as accountCon from "../../controller/accountCon.js";
+import * as episodeCon from "../../controller/episodeCon.js";
+import { multerType } from "../../middleware/multer.js";
 
 const router = Router();
 
-router.post("/verifyEmail", funcs.verifyEmail);
-router.get("/checkAuthen", funcs.checkAuthenciation);
-router.use("/account", accountRoutes);
-router.use("/episode", episodeRoutes);
+router.post("/verifyEmail", accountCon.verifyEmail);
+router.get("/checkAuthen", accountCon.checkAuthenciation);
+
+// Account
+router.post("/account/edit", multerType("thumbnail", false), accountCon.editAccountInfo);
+router.post("/account/createEmailVerification", accountCon.createEmailVerification);
+router.post("/account/changepassword", accountCon.changePassword);
+router.post("/account/logout", accountCon.logoutAccount);
+router.post("/account/verifyEmail", accountCon.verifyEmail);
+
+// Episode
+router.post("/episode/increaseview", episodeCon.increaseEpisodeView);
 
 export default router;

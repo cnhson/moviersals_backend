@@ -19,7 +19,7 @@ export const movieSchema = {
 };
 
 export const episodeSchema = {
-  uploadEpisode_Params: ["movieid", "episodenumber", "episodepath"],
+  uploadEpisode_Params: ["movieid", "name", "episodenumber", "episodepath"],
   editEpisode_Params: ["movieid", "episodenumber", "episodepath"],
   increaseEpisodeViewParams: ["movieid", "episodeid"],
 };
