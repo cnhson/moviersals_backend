@@ -30,7 +30,6 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
 });
 
 export const getMovieEpisode = errorHandler(async (req, res, next, client) => {
-  console.log(req.params);
   const params = preProcessingUrlParam(req);
   const result = await client.query("SELECT * FROM tbmovieepisode WHERE movieid = $1 and episodenumber = $2", [
     params.movieid,

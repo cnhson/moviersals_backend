@@ -97,13 +97,10 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
 
     const loginDate = getStringDatetimeNow();
     const expireDate = getExtendDatetime(7, 0, 0);
-    await client.query("UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where id = $1", [
-      user.userid,
-      requestip,
-      loginDate,
-      refreshToken,
-      expireDate,
-    ]);
+    await client.query(
+      "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where userid = $1",
+      [user.userid, requestip, loginDate, refreshToken, expireDate]
+    );
     return sendResponse(res, 200, "success", "Login successfully");
   } else {
     return sendResponse(res, 200, "success", "Login failed");

@@ -100,10 +100,10 @@ export function errorHandler(fn) {
       await fn(req, res, next, client);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return sendResponse(res, 400, "success", error.message); // No console log for ValidationError
+        return sendResponse(res, 400, "success", error.message);
       }
       console.log("errorhanlder ", error);
-      // return sendResponse(res, 500, "fail", "Internal server error");
+      return sendResponse(res, 500, "fail", "Internal server error");
     } finally {
       client.release();
     }
@@ -120,7 +120,7 @@ export function errorHandlerTransaction(fn) {
     } catch (error) {
       await client.query("ROLLBACK");
       if (error instanceof ValidationError) {
-        return sendResponse(res, 400, "success", error.message); // No console log for ValidationError
+        return sendResponse(res, 400, "success", error.message);
       }
       console.log(error);
       return sendResponse(res, 500, "fail", "Internal server error");
