@@ -23,8 +23,8 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
 });
 
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, movieSchema.checkResetPasswordToken);
-  const result = await client.query("SELECT * FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
+  const movieid = req.params.movieid;
+  const result = await client.query("SELECT * FROM tbmovieinfo WHERE movieid = $1", [movieid]);
   const movieDetail = result.rows[0];
   sendResponse(res, 200, "success", movieDetail);
 });
