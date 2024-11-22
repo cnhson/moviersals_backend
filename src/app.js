@@ -1,4 +1,4 @@
-import express, { json } from "express";
+import express from "express";
 import cors from "cors";
 import publicRoutes from "./routes/public/index.js";
 import privateRoutes from "./routes/private/index.js";
@@ -7,7 +7,6 @@ import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import { sendResponse } from "./util/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
-import { WebSocketServer } from "ws";
 
 // const wss = new WebSocketServer({
 //   host: "0.0.0.0",

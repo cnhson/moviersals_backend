@@ -131,19 +131,17 @@ export function errorHandlerTransaction(fn) {
 }
 
 export function convertToPlainText(input) {
-  // Remove accents and convert to lowercase
-  if (input instanceof String) {
-    let result = input
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-
-    // Special case for 'đ'
-    result = result.replace(/đ/g, "d");
-
-    // Remove all characters that are not letters, numbers, or allowed symbols
-    result = result.replace(/[^a-z0-9,]/g, "");
-
-    return result;
-  } else return null;
+  try {
+    if (typeof input == "string") {
+      let result = input
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      result = result.replace(/đ/g, "d");
+      result = result.replace(/[^a-z0-9,]/g, "");
+      return result;
+    } else return null;
+  } catch (error) {
+    console.log("Error while converting to plain text: ", error);
+  }
 }
