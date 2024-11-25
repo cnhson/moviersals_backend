@@ -24,7 +24,7 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
 
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
   const movieid = req.params.movieid;
-  const episodelist = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1", [movieid]);
+  const episodelist = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1  order by episodenumber asc", [movieid]);
   const result = await client.query("SELECT * FROM tbmovieinfo WHERE movieid = $1", [movieid]);
   const movieDetail = result.rows[0];
   sendResponse(res, 200, "success", { movieDetail, list: episodelist.rows });

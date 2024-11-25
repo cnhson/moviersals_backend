@@ -22,10 +22,9 @@ export async function authenticateJWT(req, res, next) {
           req.user = user;
           next();
         } else {
-          console.log("Invalid accessToken");
-          const accessToken = jwt.sign({ user }, accessSecretKey, { expiresIn: "1h" });
+          const newAccessToken = jwt.sign({ user }, accessSecretKey, { expiresIn: "1h" });
 
-          res.cookie("accessToken", accessToken, {
+          res.cookie("accessToken", newAccessToken, {
             httpOnly: true,
             secure: true,
             sameSite: "None",

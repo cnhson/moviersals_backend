@@ -33,3 +33,8 @@ export async function replaceCLoudImage(imageFile, publicid) {
     throw new Error("Image replace failed: " + error.message);
   }
 }
+
+export function generateSignature(paramToSign) {
+  const signature = cloudinary.utils.api_sign_request(paramToSign, process.env.CLOUDINARY_API_SECRET);
+  return signature;
+}
