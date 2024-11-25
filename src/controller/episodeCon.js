@@ -18,7 +18,7 @@ export const uploadEpisode_ = errorHandler(async (req, res, next, client) => {
     "INSERT INTO tbmovieepisode (movieid, episodeid, name, episodenumber,episodepath, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
     [params.movieid, episodeid, params.name, params.episodenumber, params.episodepath, createdDateTime]
   );
-  return sendResponse(res, 200, "success", "Upload movie's episode successfully");
+  return sendResponse(res, 200, "success", "success", "Upload movie's episode successfully");
 });
 
 export const editEpisode_ = errorHandler(async (req, res, next, client) => {
@@ -28,7 +28,7 @@ export const editEpisode_ = errorHandler(async (req, res, next, client) => {
     params.episodepath,
     params.episodenumber,
   ]);
-  return sendResponse(res, 200, "success", "Edit movie's episode successfully");
+  return sendResponse(res, 200, "success", "success", "Edit movie's episode successfully");
 });
 
 export const increaseEpisodeView = errorHandlerTransaction(async (req, res, next, client) => {
@@ -52,6 +52,6 @@ export const increaseEpisodeView = errorHandlerTransaction(async (req, res, next
         createddate,
       ]);
     }
-    sendResponse(res, 200, "success", "Done");
-  } else sendResponse(res, 200, "success", "Episode not exist");
+    sendResponse(res, 200, "success", "success", "Done");
+  } else sendResponse(res, 200, "success", "error", "Episode not exist");
 });

@@ -4,13 +4,13 @@ import { dbPool } from "../services/database.js";
 
 export async function authenticateJWT(req, res, next) {
   if (!req.cookies) {
-    return sendResponse(res, 401, "success", "No cookies found");
+    return sendResponse(res, 401, "success", "error", "No cookies found");
   }
 
   const { accessToken, refreshToken } = req.cookies;
 
   if (!refreshToken) {
-    return sendResponse(res, 401, "success", "Refresh token is missing");
+    return sendResponse(res, 401, "success", "error", "Refresh token is missing");
   }
 
   const accessSecretKey = process.env.ACCESS_TOKEN_SECRET;
@@ -36,7 +36,7 @@ export async function authenticateJWT(req, res, next) {
         }
       });
     } else {
-      sendResponse(res, 401, "success", "Unknown refreshToken");
+      sendResponse(res, 401, "success", "error", "Unknown refreshToken");
     }
   });
 }
@@ -63,6 +63,6 @@ export async function isPrivileged(req, res, next) {
   if (req.user.role == "admin" || req.user.role == "manager") {
     next();
   } else {
-    sendResponse(res, 403, "success", "No permissions to access requested resource");
+    sendResponse(res, 403, "success", "success", "No permissions to access requested resource");
   }
 }

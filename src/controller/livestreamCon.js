@@ -16,7 +16,7 @@ export const createLivestream_ = errorHandler(async (req, res, next, client) => 
     "INSERT INTO tblivestream (roomname, creator, description, createddate, path, ispremium) VALUES ($1, $2, $3, $4, $5, $6)",
     [params.roomname, params.creator, params.description, getStringDatetimeNow(), roomid, params.ispremium]
   );
-  sendResponse(res, 200, "success", roomid);
+  sendResponse(res, 200, "success", "success", roomid);
 });
 
 export const editLivestream_ = errorHandler(async (req, res, next, client) => {
@@ -29,5 +29,5 @@ export const editLivestream_ = errorHandler(async (req, res, next, client) => {
     params.id,
   ]);
   const movieEpisode = result.rows;
-  sendResponse(res, 200, "success", movieEpisode);
+  sendResponse(res, 200, "success", "success", movieEpisode);
 });

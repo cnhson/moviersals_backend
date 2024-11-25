@@ -55,8 +55,8 @@ export function preProcessingUrlParam(req) {
   return req.params;
 }
 
-export function sendResponse(res, statusCode, result, content) {
-  res.status(statusCode).json({ result: result, content: content });
+export function sendResponse(res, statusCode, statusMessage, result, content) {
+  res.status(statusCode).json({ result: result, status: statusMessage, content: content });
 }
 
 export function getStringDatetimeNow() {
@@ -100,7 +100,7 @@ export function errorHandler(fn) {
       await fn(req, res, next, client);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return sendResponse(res, 400, "success", error.message);
+        return sendResponse(res, 400, "fail", "error", error.message);
       }
       console.log("errorhanlder ", error);
       return sendResponse(res, 500, "fail", "Internal server error");
@@ -120,10 +120,10 @@ export function errorHandlerTransaction(fn) {
     } catch (error) {
       await client.query("ROLLBACK");
       if (error instanceof ValidationError) {
-        return sendResponse(res, 400, "success", error.message);
+        return sendResponse(res, 400, "fail", "error", error.message);
       }
       console.log(error);
-      return sendResponse(res, 500, "fail", "Internal server error");
+      return sendResponse(res, 500, "fail", "error", "Internal server error");
     } finally {
       client.release();
     }

@@ -13,13 +13,13 @@ import { movieSchema } from "../schema/index.js";
 export const testUploadImage_ = errorHandler(async (req, res, next, client) => {
   const imageUrl = await uploadCloudImage(req.file);
   console.log("Here");
-  sendResponse(res, 200, "success", imageUrl);
+  sendResponse(res, 200, "success", "success", imageUrl);
 });
 
 export const getMovieList = errorHandler(async (req, res, next, client) => {
   const result = await client.query("SELECT id, movieid, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo");
   const movieList = result.rows;
-  sendResponse(res, 200, "success", movieList);
+  sendResponse(res, 200, "success", "success", movieList);
 });
 
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
@@ -27,7 +27,7 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
   const episodelist = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1  order by episodenumber asc", [movieid]);
   const result = await client.query("SELECT * FROM tbmovieinfo WHERE movieid = $1", [movieid]);
   const movieDetail = result.rows[0];
-  sendResponse(res, 200, "success", { movieDetail, list: episodelist.rows });
+  sendResponse(res, 200, "success", "success", { movieDetail, list: episodelist.rows });
 });
 
 export const getMovieEpisode = errorHandler(async (req, res, next, client) => {
@@ -37,7 +37,7 @@ export const getMovieEpisode = errorHandler(async (req, res, next, client) => {
     params.episodeid,
   ]);
   const movieEpisode = result.rows;
-  sendResponse(res, 200, "success", movieEpisode);
+  sendResponse(res, 200, "success", "success", movieEpisode);
 });
 
 export const uploadImage_ = errorHandler(async (req, res, next, client) => {

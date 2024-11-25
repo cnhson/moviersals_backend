@@ -4,7 +4,6 @@ import * as movieCon from "../../controller/movieCon.js";
 import * as accountCon from "../../controller/accountCon.js";
 import * as episodeCon from "../../controller/episodeCon.js";
 import * as livestreamCon from "../../controller/livestreamCon.js";
-import * as cloudinaryCon from "../../controller/cloudinaryCon.js";
 
 const router = Router();
 
@@ -28,7 +27,5 @@ router.post("/livestream/create", multerType("thumbnail"), livestreamCon.createL
 router.post("/livestream/edit", multerType("thumbnail"), livestreamCon.editLivestream_);
 
 // Cloudinary
-
-router.post("/cloudinary/getsignature", cloudinaryCon.createCloudinarySignature_);
 
 export default router;
