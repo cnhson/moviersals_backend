@@ -37,7 +37,7 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
   console.log(req.user);
   const logoutDate = getStringDatetimeNow();
-  const result = await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 where id = $1", [
+  const result = await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 where userid = $1", [
     userid,
     logoutDate,
   ]);
