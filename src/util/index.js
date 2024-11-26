@@ -76,6 +76,12 @@ export function getExtendDatetime(day, hour, minute) {
     .format("YYYY-MM-DD HH:mm:ss");
 }
 
+export function getInputExtendDatetime(inputdate, day, hour, minute) {
+  const baseDatetime = inputdate ? moment(inputdate, "YYYY-MM-DD HH:mm:ss.SSS").tz("Asia/Ho_Chi_Minh") : moment().tz("Asia/Ho_Chi_Minh");
+
+  return baseDatetime.add(Number(day), "days").add(Number(hour), "hours").add(Number(minute), "minutes").format("YYYY-MM-DD HH:mm:ss");
+}
+
 export function convertToMoment(date) {
   return moment(date).tz("Asia/Ho_Chi_Minh");
 }

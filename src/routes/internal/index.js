@@ -4,6 +4,8 @@ import * as movieCon from "../../controller/movieCon.js";
 import * as accountCon from "../../controller/accountCon.js";
 import * as episodeCon from "../../controller/episodeCon.js";
 import * as livestreamCon from "../../controller/livestreamCon.js";
+import * as orderCon from "../../controller/orderCon.js";
+import * as subcriptionCon from "../../controller/subcriptionCon.js";
 
 const router = Router();
 
@@ -26,6 +28,11 @@ router.get("/movie/get/:movieid", movieCon.getMovieAllEpisodes_);
 router.post("/livestream/create", multerType("thumbnail"), livestreamCon.createLivestream_);
 router.post("/livestream/edit", multerType("thumbnail"), livestreamCon.editLivestream_);
 
-// Cloudinary
+// Order
+router.get("/order/getAll", orderCon.getAllOrders_);
+
+// Subcription
+router.post("/subcription/create", subcriptionCon.createSubcriptionPlan_);
+router.post("/subcription/edit", subcriptionCon.editSubcriptionPlan_);
 
 export default router;

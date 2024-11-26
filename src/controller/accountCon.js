@@ -20,10 +20,12 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   const params = preProcessingBodyParam(req, accountSchema.createAccountParams);
   const role = "customer";
   const hashedPassword = await bcrypt.hash(params.password, 10);
+  const createddate = getStringDatetimeNow();
   const result = await client.query(
-    "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role) VALUES ($1, $2, $3, $4, $5, $6)",
-    [params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role]
+    "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role, membership, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+    [params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role, false, createddate]
   );
+  console.log(result.rows[0].id);
   const userid = result.rows[0].id;
   await client.query("INSERT INTO tbloginhistory (userid) VALUES ($1)", [userid]);
   await client.query("INSERT INTO tbemailverification (userid) VALUES ($1)", [userid]);

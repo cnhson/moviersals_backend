@@ -30,3 +30,14 @@ export const livestreamSchema = {
   endLivestream_Params: ["id", "roomname", "creator", "isstreaming"],
   increaseviewLivestream_Params: ["id", "view"],
 };
+
+export const orderSchema = {
+  createPaypalOrderParams: ["id", "subcriptionid", "amount", "email", "payerid"],
+  getOrderPaymentDetailParams: ["paymentmethod", "paymentid"],
+};
+
+export const subcriptionSchema = {
+  getSubcriptionDetailParams: ["subcriptionid"],
+  createSubcription_Params: ["subcriptionid", "name", "amount", "daysduration"],
+  editSubcription_Params: ["subcriptionid", "name", "amount", "daysduration"],
+};
