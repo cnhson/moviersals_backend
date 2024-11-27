@@ -22,5 +22,6 @@ router.post("/episode/increaseview", episodeCon.increaseEpisodeView);
 // Paypal
 router.post("/order/create/paypal", orderCon.createPaypalOrder);
 router.post("/order/getDetail", orderCon.getOrderPaymentDetail);
+router.post("/test/vnpay", orderCon.testVnPay);
 
 export default router;

@@ -1,5 +1,5 @@
-import { subcriptionSchema } from "../schema";
-import { errorHandler, preProcessingBodyParam, sendResponse } from "../util";
+import { subcriptionSchema } from "../schema/index.js";
+import { errorHandler, preProcessingBodyParam, sendResponse } from "../util/index.js";
 
 export const getAllSubcriptionPlan = errorHandler(async (req, res, next, client) => {
   const result = await client.query("SELECT * FROM tbsubcriptionplaninfo");

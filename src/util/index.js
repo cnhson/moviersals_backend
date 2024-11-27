@@ -1,5 +1,7 @@
 import moment from "moment-timezone";
 import { dbPool } from "../services/database.js";
+import querystring from "qs";
+import crypto from "crypto";
 
 class ValidationError extends Error {
   constructor(message) {
@@ -150,4 +152,29 @@ export function convertToPlainText(input) {
   } catch (error) {
     console.log("Error while converting to plain text: ", error);
   }
+}
+
+export function queryStringify(params) {
+  return querystring.stringify(Object(params), { encode: false });
+}
+
+export function getSignatureKey(data, secretKey) {
+  let hmac = crypto.createHmac("sha512", secretKey);
+  return hmac.update(Buffer.from(data, "utf-8")).digest("hex");
+}
+
+export function sortObject(obj) {
+  let sorted = {};
+  let str = [];
+  let key;
+  for (key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      str.push(encodeURIComponent(key));
+    }
+  }
+  str.sort();
+  for (key = 0; key < str.length; key++) {
+    sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+  }
+  return sorted;
 }
