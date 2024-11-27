@@ -10,6 +10,7 @@ import {
   queryStringify,
   sortObject,
   getSignatureKey,
+  getReqIpAddress,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { orderSchema } from "../schema/index.js";
@@ -21,6 +22,7 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
   const createddate = getStringDatetimeNow();
   const orderid = "OD" + generateRandomString(20);
   const paypalorderid = "PAYPAL_" + generateRandomString(20);
+  const status = "PAID";
   const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
   if (subcriptioninfo.rowCount == 1) {
     const duration = subcriptioninfo.rows[0].daysduration;
@@ -30,8 +32,8 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
     const expireddate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
 
     await client.query(
-      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
-      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate]
+      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, status]
     );
     await client.query(
       "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -41,9 +43,38 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
       "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, activetime = activetime + 1 where userid = $1",
       [userid, true, createddate, expireddate]
     );
+    return sendResponse(res, 200, "success", "success", "Create order successfully");
+  }
+  return sendResponse(res, 200, "success", "error", "Subcription not exist");
+});
 
-    await client.query("update tbuserinfo set membership = true where id = $1", [userid]);
+export const createVNPayOrder = errorHandlerTransaction(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, orderSchema.createPaypalOrderParams);
+  const userid = req.user.userid;
+  const createddate = getStringDatetimeNow();
+  const orderid = "OD" + generateRandomString(20);
+  const paypalorderid = "PAYPAL_" + generateRandomString(20);
+  const status = "PAID";
+  const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
+  if (subcriptioninfo.rowCount == 1) {
+    const duration = subcriptioninfo.rows[0].daysduration;
 
+    const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [userid]);
+
+    const expireddate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
+
+    await client.query(
+      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, status]
+    );
+    await client.query(
+      "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
+      [params.id, paypalorderid, params.email, params.payerid, params.amount, createddate]
+    );
+    await client.query(
+      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, activetime = activetime + 1 where userid = $1",
+      [userid, true, createddate, expireddate]
+    );
     return sendResponse(res, 200, "success", "success", "Create order successfully");
   }
   return sendResponse(res, 200, "success", "error", "Subcription not exist");
@@ -77,14 +108,13 @@ export const testVnPay = errorHandler(async (req, res, next, client) => {
   let date = new Date();
   let createDate = moment(date).format("YYYYMMDDHHmmss");
 
-  let ipAddr =
-    req.headers["x-forwarded-for"] || req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket.remoteAddress;
+  let ipAddr = getReqIpAddress(req);
 
-  let tmnCode = "09ZS3WH6";
-  let secretKey = "IUOVDAELCAQFBSFLX1MKRAIOPY91ADO8";
+  let tmnCode = process.env.VNPAY_TERMINAL_CODE;
+  let secretKey = process.env.VNPAY_SECREY_KEY;
   let vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-  let returnUrl = "http://localhost:3000/IPN";
-  // let orderId = moment(date).format("DDHHmmss");
+  let returnUrl = process.env.FRONTEND_URL + "/IPN";
+
   let orderId = "VNPAY_" + generateRandomString(20);
 
   let amount = req.body.amount;
@@ -98,7 +128,7 @@ export const testVnPay = errorHandler(async (req, res, next, client) => {
   vnp_Params["vnp_Locale"] = locale;
   vnp_Params["vnp_CurrCode"] = currCode;
   vnp_Params["vnp_TxnRef"] = orderId;
-  vnp_Params["vnp_OrderInfo"] = "Thanh toan cho ma GD:" + orderId;
+  vnp_Params["vnp_OrderInfo"] = "Thanh toan cho ma GD: " + orderId;
   vnp_Params["vnp_OrderType"] = "other";
   vnp_Params["vnp_Amount"] = amount * 100;
   vnp_Params["vnp_ReturnUrl"] = returnUrl;

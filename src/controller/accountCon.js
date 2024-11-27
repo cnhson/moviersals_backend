@@ -22,7 +22,7 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   const hashedPassword = await bcrypt.hash(params.password, 10);
   const createddate = getStringDatetimeNow();
   const result = await client.query(
-    "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role, membership, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+    "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role, ispremium, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
     [params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role, false, createddate]
   );
   console.log(result.rows[0].id);
@@ -218,14 +218,22 @@ export const verifyResetPassword = errorHandler(async (req, res, next, client) =
 
 export const getAllUser_ = errorHandler(async (req, res, next, client) => {
   const result = await client.query(
-    "SELECT id,username,displayname,email,phonenumber,membership,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin'"
+    "SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin'"
   );
   return sendResponse(res, 200, "success", "success", result.rows);
 });
 
 export const checkAuthenciation = errorHandler(async (req, res, next, client) => {
+  const userid = req.user.userid;
+
+  const premiumCheck = await client.query(
+    "SELECT EXISTS ( SELECT 1 FROM tbusersubscription t where t.usingend > NOW() and t.userid = '9') AS ispremium"
+  );
+
+  await client.query("update tbuserinfo set ispremium = " + premiumCheck.rows[0].ispremium + " where id = $1", [userid]);
+
   const result = await client.query(
-    "SELECT id,username,displayname,email,phonenumber,membership,role,createddate,isverified, thumbnail FROM tbuserinfo where id = $1",
+    "SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified, thumbnail FROM tbuserinfo where id = $1",
     [req.user.userid]
   );
   return sendResponse(res, 200, "success", "success", result.rows[0]);
