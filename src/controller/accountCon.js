@@ -11,6 +11,9 @@ import {
   preProcessingBodyParam,
   createToken,
   getReqIpAddress,
+  getConvertedDatetime,
+  getDatetimeNow,
+  getInputExtendDatetime,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -134,7 +137,7 @@ export const createEmailVerification = errorHandlerTransaction(async (req, res, 
   const emailToken = generateRandomString(12);
   const expiredDate = getExtendDatetime(0, 0, 5);
   const createdDateTime = getStringDatetimeNow();
-  await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createdDateTime =  $4 where id = $1", [
+  await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createddate = $4 where id = $1", [
     userid,
     emailToken,
     expiredDate,
@@ -171,18 +174,26 @@ export const verifyEmail = errorHandler(async (req, res, next, client) => {
 export const createResetPasswordToken = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.createResetPasswordToken);
 
-  const passwordResetToken = generateRandomString(18);
+  const previouscheck = await client.query("SELECT * FROM tbpasswordreset WHERE email = $1", [params.email]);
+  const oldexpiredatetime = getConvertedDatetime(previouscheck.rows[0].expireddate);
+
+  if (getDatetimeNow().isBefore(oldexpiredatetime))
+    return sendResponse(res, 200, "success", "error", "You can only request a new password reset token once every 5 minutes");
+
+  const passwordResetToken = generateRandomString(30);
   const expiredDate = getExtendDatetime(0, 0, 5);
   const createdDateTime = getStringDatetimeNow();
-  const result = await client.query(
-    "UPDATE tbpasswordreset SET passwordtoken = $2, expireddate = $3, createdDateTime =  $4 WHERE email = $1",
-    [params.email, passwordResetToken, expiredDate, createdDateTime]
-  );
+  const result = await client.query("UPDATE tbpasswordreset SET passwordtoken = $2, expireddate = $3, createddate = $4 WHERE email = $1", [
+    params.email,
+    passwordResetToken,
+    expiredDate,
+    createdDateTime,
+  ]);
   if (result.rowCount > 0) {
     await sendEmail(
       params.email,
       "Password reset",
-      `Your password reset link  is ${process.env.FRONTEND_URL}/passwordrecovery?token=${passwordResetToken}, it will expire in 5 minutes at ${expiredDate}!`
+      `Your password reset link is ${process.env.FRONTEND_URL}/passwordrecovery/confirm?token=${passwordResetToken}, it will expire in 5 minutes at ${expiredDate}!`
     );
     sendResponse(res, 200, "success", "success", "Check your email for password reset link");
   } else {
@@ -202,15 +213,19 @@ export const checkResetPasswordToken = errorHandler(async (req, res, next, clien
   } else return sendResponse(res, 200, "success", "error", "Invalid password reset token");
 });
 
-export const verifyResetPassword = errorHandler(async (req, res, next, client) => {
+export const verifyResetPassword = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
-  const result = await client.query("SELECT email, expireddate FROM tbemailverification WHERE passwordtoken = $1", [params.passwordtoken]);
+  const result = await client.query("SELECT email, expireddate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result) {
     const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expireddate;
     if (moment(datetimenow).isSameOrBefore(exireddate)) {
       let hashedpassword = await bcrypt.hash(params.newpassword, 10);
       await client.query("UPDATE tbuserinfo SET password = $1 WHERE email = $2", [hashedpassword, result.rows[0].email]);
+      await client.query("UPDATE tbpasswordreset SET passwordtoken = null, expireddate = null, createddate = null WHERE email = $2", [
+        hashedpassword,
+        result.rows[0].email,
+      ]);
       return sendResponse(res, 200, "success", "success", "Reset password successfully");
     } else return sendResponse(res, 200, "success", "error", "Reset password token expired, please request a new one again");
   }

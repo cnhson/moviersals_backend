@@ -23,6 +23,6 @@ router.post("/movie/filter", movieCon.categoriesFilter);
 
 router.get("/subcription/getAll", subcriptionCon.getAllSubcriptionPlan);
 
-router.get("/vnpay/ipn", orderCon.ipnVNPay);
+router.get("/vnpay/ipn", orderCon.hanldeVNPayIPN);
 
 export default router;

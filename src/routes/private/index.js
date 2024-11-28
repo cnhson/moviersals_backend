@@ -24,6 +24,6 @@ router.post("/order/create/paypal", orderCon.createPaypalOrder);
 router.post("/order/getDetail", orderCon.getOrderPaymentDetail);
 
 // VNPay
-router.post("/test/vnpay", orderCon.createVNPayTransaction);
+router.post("/order/create/vnpay", orderCon.createVNPayTransaction);
 
 export default router;

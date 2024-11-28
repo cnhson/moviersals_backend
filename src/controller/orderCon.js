@@ -153,7 +153,7 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   sendResponse(res, 200, "success", "success", vnpUrl);
 });
 
-export const ipnVNPay = errorHandlerTransaction(async (req, res, next, client) => {
+export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, client) => {
   let vnp_Params = req.query;
   let secureHash = vnp_Params["vnp_SecureHash"];
   let orderId = vnp_Params["vnp_TxnRef"];
