@@ -69,11 +69,6 @@ app.use(
   })
 );
 
-// app.use("*", (req, res, next) => {
-//   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-//   next();
-// });
-
 app.get("/favicon.ico", (req, res) => {
   res.sendStatus(204);
 });

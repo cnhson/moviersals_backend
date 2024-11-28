@@ -13,10 +13,10 @@ import {
   getReqIpAddress,
   getInputVNPayDatetimeNow,
   convertVnPayDatetime,
+  getDatetimeNow,
+  getConvertedDatetime,
 } from "../util/index.js";
-import { sendEmail } from "../services/mailer.js";
 import { orderSchema } from "../schema/index.js";
-import moment from "moment";
 
 export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, orderSchema.createPaypalOrderParams);
@@ -72,12 +72,29 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
   return sendResponse(res, 200, "success", "success", result.rows);
 });
 
-export const createVNPayTransaction = errorHandler(async (req, res, next, client) => {
+export const createVNPayTransaction = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, orderSchema.createVNPayTransactionParams);
 
   const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
   if (subcriptioninfo.rowCount == 0) {
     return sendResponse(res, 200, "success", "error", "Subcription id not exist");
+  }
+
+  const checkpending = await client.query(`select * from tborderhistory where userid = $1 and subcriptionid = $2 and status = 'PENDING'`, [
+    req.user.userid,
+    params.subcriptionid,
+  ]);
+
+  if (checkpending.rowCount > 0) {
+    const currentdatetime = getDatetimeNow();
+    const createddatetime = getConvertedDatetime(checkpending.rows[0].createddate);
+    // Check if there is a previous pending order which is not expired yet (hasn't passed 15 minutes)
+    if (currentdatetime.isBefore(getInputExtendDatetime(createddatetime, 0, 0, 15))) {
+      return sendResponse(res, 200, "success", "success", checkpending.rows[0].paymenturl);
+    } else {
+      await client.query("delete from tborderhistory where paymentid = $1", [checkpending.rows[0].paymentid]);
+      await client.query("delete from tbvnpaypayment where paymentid = $1", [checkpending.rows[0].paymentid]);
+    }
   }
 
   let date = new Date();
@@ -136,7 +153,7 @@ export const createVNPayTransaction = errorHandler(async (req, res, next, client
   sendResponse(res, 200, "success", "success", vnpUrl);
 });
 
-export const ipnVNPay = errorHandler(async (req, res, next, client) => {
+export const ipnVNPay = errorHandlerTransaction(async (req, res, next, client) => {
   let vnp_Params = req.query;
   let secureHash = vnp_Params["vnp_SecureHash"];
   let orderId = vnp_Params["vnp_TxnRef"];
@@ -186,10 +203,13 @@ export const ipnVNPay = errorHandler(async (req, res, next, client) => {
               orderId,
             ]);
 
-            await client.query(
-              "UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, description = $5, transstatus = $6 WHERE paymentid = $1",
-              [orderId, banktranno, cardType, bankCode, description, transstatus]
-            );
+            await client.query("UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, transstatus = $5 WHERE paymentid = $1", [
+              orderId,
+              banktranno,
+              cardType,
+              bankCode,
+              transstatus,
+            ]);
 
             res.status(200).json({ RspCode: "00", Message: "Success" });
           } else {
