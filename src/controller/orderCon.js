@@ -11,44 +11,14 @@ import {
   sortObject,
   getSignatureKey,
   getReqIpAddress,
+  getInputVNPayDatetimeNow,
+  convertVnPayDatetime,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { orderSchema } from "../schema/index.js";
 import moment from "moment";
 
 export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, orderSchema.createPaypalOrderParams);
-  const userid = req.user.userid;
-  const createddate = getStringDatetimeNow();
-  const orderid = "OD" + generateRandomString(20);
-  const paypalorderid = "PAYPAL_" + generateRandomString(20);
-  const status = "PAID";
-  const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
-  if (subcriptioninfo.rowCount == 1) {
-    const duration = subcriptioninfo.rows[0].daysduration;
-
-    const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [userid]);
-
-    const expireddate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
-
-    await client.query(
-      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, status]
-    );
-    await client.query(
-      "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
-      [params.id, paypalorderid, params.email, params.payerid, params.amount, createddate]
-    );
-    await client.query(
-      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, activetime = activetime + 1 where userid = $1",
-      [userid, true, createddate, expireddate]
-    );
-    return sendResponse(res, 200, "success", "success", "Create order successfully");
-  }
-  return sendResponse(res, 200, "success", "error", "Subcription not exist");
-});
-
-export const createVNPayOrder = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, orderSchema.createPaypalOrderParams);
   const userid = req.user.userid;
   const createddate = getStringDatetimeNow();
@@ -92,8 +62,8 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
     case "PAYPAL":
       tableName = "tbpaypalpayment";
       break;
-    case "MOMO":
-      tableName = "tbmomopayment";
+    case "VNPAY":
+      tableName = "tbvnpaypayment";
       break;
     default:
       return sendResponse(res, 200, "success", "error", "Payment method not exist");
@@ -102,24 +72,27 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
   return sendResponse(res, 200, "success", "success", result.rows);
 });
 
-export const testVnPay = errorHandler(async (req, res, next, client) => {
-  process.env.TZ = "Asia/Ho_Chi_Minh";
+export const createVNPayTransaction = errorHandler(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, orderSchema.createVNPayTransactionParams);
+
+  const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
+  if (subcriptioninfo.rowCount == 0) {
+    return sendResponse(res, 200, "success", "error", "Subcription id not exist");
+  }
 
   let date = new Date();
-  let createDate = moment(date).format("YYYYMMDDHHmmss");
-
+  let createDate = getInputVNPayDatetimeNow(date);
   let ipAddr = getReqIpAddress(req);
 
   let tmnCode = process.env.VNPAY_TERMINAL_CODE;
   let secretKey = process.env.VNPAY_SECREY_KEY;
   let vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-  let returnUrl = process.env.FRONTEND_URL + "/IPN";
+  let returnUrl = process.env.FRONTEND_URL + "/return";
 
   let orderId = "VNPAY_" + generateRandomString(20);
-
+  let orderdescription = "Thanh toan cho ma GD: " + orderId + ", ma goi dich vu: " + params.subcriptionid;
   let amount = req.body.amount;
   let locale = "vn";
-
   let currCode = "VND";
   let vnp_Params = {};
   vnp_Params["vnp_Version"] = "2.1.0";
@@ -128,18 +101,111 @@ export const testVnPay = errorHandler(async (req, res, next, client) => {
   vnp_Params["vnp_Locale"] = locale;
   vnp_Params["vnp_CurrCode"] = currCode;
   vnp_Params["vnp_TxnRef"] = orderId;
-  vnp_Params["vnp_OrderInfo"] = "Thanh toan cho ma GD: " + orderId;
+  vnp_Params["vnp_OrderInfo"] = orderdescription;
   vnp_Params["vnp_OrderType"] = "other";
   vnp_Params["vnp_Amount"] = amount * 100;
   vnp_Params["vnp_ReturnUrl"] = returnUrl;
   vnp_Params["vnp_IpAddr"] = ipAddr;
   vnp_Params["vnp_CreateDate"] = createDate;
 
+  // @ts-ignore
   vnp_Params = sortObject(vnp_Params);
   let signData = queryStringify(vnp_Params);
   let signed = getSignatureKey(signData, secretKey);
   vnp_Params["vnp_SecureHash"] = signed;
   vnpUrl += "?" + queryStringify(vnp_Params);
 
+  const userid = req.user.userid;
+  const createddate = getStringDatetimeNow();
+  const orderid = "OD" + generateRandomString(20);
+  const status = "PENDING";
+  const transstatus = "01";
+
+  await client.query(
+    "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status, paymenturl) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    [orderid, userid, params.subcriptionid, "VNPAY", orderId, createddate, status, vnpUrl]
+  );
+  await client.query("insert into tbvnpaypayment (paymentid, description, transstatus, amount, createddate) VALUES ($1, $2, $3, $4, $5)", [
+    orderId,
+    orderdescription,
+    transstatus,
+    amount,
+    createddate,
+  ]);
+
   sendResponse(res, 200, "success", "success", vnpUrl);
+});
+
+export const ipnVNPay = errorHandler(async (req, res, next, client) => {
+  let vnp_Params = req.query;
+  let secureHash = vnp_Params["vnp_SecureHash"];
+  let orderId = vnp_Params["vnp_TxnRef"];
+  let rspCode = vnp_Params["vnp_ResponseCode"];
+
+  delete vnp_Params["vnp_SecureHash"];
+  delete vnp_Params["vnp_SecureHashType"];
+
+  vnp_Params = sortObject(vnp_Params);
+  let cardType = vnp_Params["vnp_CardType"];
+  let bankCode = vnp_Params["vnp_BankCode"];
+  let description = vnp_Params["vnp_OrderInfo"];
+  let transstatus = vnp_Params["vnp_TransactionStatus"];
+  let secretKey = process.env.VNPAY_SECREY_KEY;
+  let signData = queryStringify(vnp_Params);
+  let signed = getSignatureKey(signData, secretKey);
+  let banktranno = vnp_Params["vnp_BankTranNo"];
+  let amount = Number(vnp_Params["vnp_Amount"]) / 100;
+  const paymentdate = convertVnPayDatetime(vnp_Params["vnp_PayDate"]);
+
+  let paymentStatus = "0"; // Giả sử '0' là trạng thái khởi tạo giao dịch, chưa có IPN. Trạng thái này được lưu khi yêu cầu thanh toán chuyển hướng sang Cổng thanh toán VNPAY tại đầu khởi tạo đơn hàng.
+  //let paymentStatus = '1'; // Giả sử '1' là trạng thái thành công bạn cập nhật sau IPN được gọi và trả kết quả về nó
+  //let paymentStatus = '2'; // Giả sử '2' là trạng thái thất bại bạn cập nhật sau IPN được gọi và trả kết quả về nó
+
+  const vnpayordercheck = await client.query(
+    `select t2.paymentid, t2.amount from tborderhistory t1 
+    join tbvnpaypayment t2 on t1.paymentid = t2.paymentid 
+    where t2.paymentid = $1`,
+    [orderId]
+  );
+
+  let checkOrderId = vnpayordercheck.rows[0].paymentid == orderId ? true : false;
+  let checkAmount = Number(vnpayordercheck.rows[0].amount) == amount ? true : false;
+  if (secureHash === signed) {
+    //kiểm tra checksum
+    if (checkOrderId) {
+      if (checkAmount) {
+        if (paymentStatus == "0") {
+          //kiểm tra tình trạng giao dịch trước khi cập nhật tình trạng thanh toán
+          if (rspCode == "00") {
+            //thanh cong
+
+            const paymentstatus = "PAID";
+            await client.query("UPDATE tborderhistory SET status = $1, paymentdate = $2 WHERE paymentid = $3", [
+              paymentstatus,
+              paymentdate,
+              orderId,
+            ]);
+
+            await client.query(
+              "UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, description = $5, transstatus = $6 WHERE paymentid = $1",
+              [orderId, banktranno, cardType, bankCode, description, transstatus]
+            );
+
+            res.status(200).json({ RspCode: "00", Message: "Success" });
+          } else {
+            //that bai
+            res.status(200).json({ RspCode: "00", Message: "Success" });
+          }
+        } else {
+          res.status(200).json({ RspCode: "02", Message: "This order has been updated to the payment status" });
+        }
+      } else {
+        res.status(200).json({ RspCode: "04", Message: "Amount invalid" });
+      }
+    } else {
+      res.status(200).json({ RspCode: "01", Message: "Order not found" });
+    }
+  } else {
+    res.status(200).json({ RspCode: "97", Message: "Checksum failed" });
+  }
 });

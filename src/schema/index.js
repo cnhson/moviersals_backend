@@ -32,8 +32,9 @@ export const livestreamSchema = {
 };
 
 export const orderSchema = {
+  // id: paypal order id sent from frontend button
   createPaypalOrderParams: ["id", "subcriptionid", "amount", "email", "payerid"],
-  createVnPayOrderParams: ["id", "subcriptionid", "amount"],
+  createVNPayTransactionParams: ["subcriptionid", "amount"],
   getOrderPaymentDetailParams: ["paymentmethod", "paymentid"],
 };
 

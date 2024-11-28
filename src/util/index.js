@@ -69,6 +69,18 @@ export function getDatetimeNow() {
   return moment().tz("Asia/Ho_Chi_Minh");
 }
 
+export function getInputVNPayDatetimeNow(date) {
+  return moment(date).tz("Asia/Ho_Chi_Minh").format("YYYYMMDDHHmmss");
+}
+
+export function getInputStringDatetimeNow(date) {
+  return moment(date).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm:ss");
+}
+
+export function convertVnPayDatetime(date) {
+  return moment(date, "YYYYMMDDHHmmss").tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm:ss");
+}
+
 export function getExtendDatetime(day, hour, minute) {
   return moment()
     .tz("Asia/Ho_Chi_Minh")

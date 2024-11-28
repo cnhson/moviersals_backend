@@ -69,6 +69,11 @@ app.use(
   })
 );
 
+// app.use("*", (req, res, next) => {
+//   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+//   next();
+// });
+
 app.get("/favicon.ico", (req, res) => {
   res.sendStatus(204);
 });
@@ -81,6 +86,7 @@ app.use("/test", (req, res) => {
 
 // Invalid API path middleware
 app.use((req, res) => {
+  console.log("wat");
   sendResponse(res, 404, "fail", "Invalid API path");
 });
 

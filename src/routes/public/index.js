@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as accountCon from "../../controller/accountCon.js";
 import * as movieCon from "../../controller/movieCon.js";
 import * as subcriptionCon from "../../controller/subcriptionCon.js";
+import * as orderCon from "../../controller/orderCon.js";
 
 const router = Router();
 
@@ -21,4 +22,7 @@ router.post("/movie/filter", movieCon.categoriesFilter);
 // Subcripiton
 
 router.get("/subcription/getAll", subcriptionCon.getAllSubcriptionPlan);
+
+router.get("/vnpay/ipn", orderCon.ipnVNPay);
+
 export default router;
