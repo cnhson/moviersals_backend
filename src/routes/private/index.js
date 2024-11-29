@@ -6,7 +6,6 @@ import { multerType } from "../../middleware/multer.js";
 
 const router = Router();
 
-router.post("/verifyEmail", accountCon.verifyEmail);
 router.get("/checkAuthen", accountCon.checkAuthenciation);
 
 // Account

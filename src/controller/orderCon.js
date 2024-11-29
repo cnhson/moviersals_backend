@@ -31,7 +31,7 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
 
     const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [userid]);
 
-    const expireddate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
+    const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
 
     await client.query(
       "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -43,7 +43,7 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
     );
     await client.query(
       "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, activetime = activetime + 1 where userid = $1",
-      [userid, true, createddate, expireddate]
+      [userid, true, createddate, expiredate]
     );
     return sendResponse(res, 200, "success", "success", "Create order successfully");
   }
@@ -104,7 +104,7 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   let tmnCode = process.env.VNPAY_TERMINAL_CODE;
   let secretKey = process.env.VNPAY_SECREY_KEY;
   let vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-  let returnUrl = process.env.FRONTEND_URL + "/return";
+  let returnUrl = process.env.FRONTEND_URL + "/vnpay/return";
 
   let orderId = "VNPAY_" + generateRandomString(20);
   let orderdescription = "Thanh toan cho ma GD: " + orderId + ", ma goi dich vu: " + params.subcriptionid;
@@ -165,7 +165,7 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
   vnp_Params = sortObject(vnp_Params);
   let cardType = vnp_Params["vnp_CardType"];
   let bankCode = vnp_Params["vnp_BankCode"];
-  let description = vnp_Params["vnp_OrderInfo"];
+  // let description = vnp_Params["vnp_OrderInfo"];
   let transstatus = vnp_Params["vnp_TransactionStatus"];
   let secretKey = process.env.VNPAY_SECREY_KEY;
   let signData = queryStringify(vnp_Params);

@@ -36,7 +36,7 @@ function buildParams(fields) {
 function validateFields(fields) {
   let missingKey = [];
   for (const [key, value] of Object.entries(fields)) {
-    if (value == null) {
+    if (value == null || value.trim() == "") {
       missingKey.push(key);
     }
   }

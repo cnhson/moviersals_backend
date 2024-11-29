@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import moment from "../../node_modules/moment/moment.js";
 import {
   generateRandomString,
   sendResponse,
@@ -31,7 +30,8 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   console.log(result.rows[0].id);
   const userid = result.rows[0].id;
   await client.query("INSERT INTO tbloginhistory (userid) VALUES ($1)", [userid]);
-  await client.query("INSERT INTO tbemailverification (userid) VALUES ($1)", [userid]);
+  await client.query("INSERT INTO tbpasswordreset (userid, email) VALUES ($1)", [userid, params.email]);
+  await client.query("INSERT INTO tbemailverification (userid, email) VALUES ($1)", [userid, params.email]);
   await client.query("INSERT INTO tbusersubscription (userid) VALUES ($1)", [userid]);
   await client.query("INSERT INTO tbfavouritelist (userid) VALUES ($1)", [userid]);
 
@@ -131,40 +131,49 @@ export const changePassword = errorHandler(async (req, res, next, client) => {
 });
 
 export const createEmailVerification = errorHandlerTransaction(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, accountSchema.createEmailVerificationParams);
   const userid = req.user.userid;
-  const result = await client.query("SELECT email FROM tbuserinfo where id = $1", [userid]);
-  const useremail = result.rows[0].email;
+  const result = await client.query("SELECT * FROM tbemailverification where userid = $1", [userid]);
+  const tokenexpiredate = getConvertedDatetime(result.rows[0].expiredate);
+  if (getDatetimeNow().isSameOrBefore(tokenexpiredate))
+    return sendResponse(res, 200, "success", "error", "Email verification token can only be requested once every 5 minutes");
+
   const emailToken = generateRandomString(12);
-  const expiredDate = getExtendDatetime(0, 0, 5);
+  const expireDate = getExtendDatetime(0, 0, 5);
   const createdDateTime = getStringDatetimeNow();
-  await client.query("UPDATE tbemailverification SET emailtoken = $2, expireddate = $3, createddate = $4 where id = $1", [
+
+  await client.query("UPDATE tbemailverification SET emailtoken = $3, expiredate = $4, createddate = $5 where userid = $1 and email = $2", [
     userid,
+    params.email,
     emailToken,
-    expiredDate,
+    expireDate,
     createdDateTime,
   ]);
   await sendEmail(
-    useremail,
+    params.email,
     "Email verification",
-    `Your email verification token is ${emailToken}, it will expire in 5 minutes at ${expiredDate}!`
+    `Your email verification token is ${emailToken}, it will expire in 5 minutes at ${expireDate}!`
   );
-  sendResponse(res, 200, "success", "success", "Check your email for email verification token");
+  sendResponse(res, 200, "success", "success", "Check your email for verification token");
 });
 
 export const verifyEmail = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
-  const params = preProcessingBodyParam(req, accountSchema.verifyEmailParams);
+  const params = preProcessingBodyParam(req, accountSchema.verifyEmailVerificationParams);
 
-  const result = await client.query("SELECT emailtoken, expireddate FROM tbemailverification where id = $1", [userid]);
+  const result = await client.query("SELECT emailtoken, expiredate FROM tbemailverification where userid = $1 and email = $2", [
+    userid,
+    params.email,
+  ]);
   if (result) {
-    const datetimenow = getStringDatetimeNow();
-    const exireddate = result.rows[0].expireddate;
-    if (moment(datetimenow).isSameOrBefore(exireddate)) {
+    const exireddate = result.rows[0].expiredate;
+    if (getDatetimeNow().isSameOrBefore(exireddate)) {
       if (result.rows[0].emailtoken == params.emailtoken) {
-        const result2 = await client.query("Select email from tbuserinfo where userid = $1", [userid]);
-        const useremail = result2.rows[0].email;
-        await client.query("INSERT INTO tbpasswordreset (email) VALUES ($1)", [useremail]);
-        await client.query("UPDATE tbuserinfo SET isverified = true where id = $1", [userid]);
+        await client.query("UPDATE tbuserinfo SET isverified = true where id = $1 and email = $2", [userid, params.email]);
+        await client.query("UPDATE tbemailverification set emailtoken = null, expiredate = null where userid = $1 and email = $2", [
+          userid,
+          params.email,
+        ]);
         return sendResponse(res, 200, "success", "success", "Email verification successfully");
       }
     } else return sendResponse(res, 200, "success", "error", "Email verification expired, please request a new one again");
@@ -175,25 +184,25 @@ export const createResetPasswordToken = errorHandler(async (req, res, next, clie
   const params = preProcessingBodyParam(req, accountSchema.createResetPasswordToken);
 
   const previouscheck = await client.query("SELECT * FROM tbpasswordreset WHERE email = $1", [params.email]);
-  const oldexpiredatetime = getConvertedDatetime(previouscheck.rows[0].expireddate);
+  const oldexpiredatetime = getConvertedDatetime(previouscheck.rows[0].expiredate);
 
   if (getDatetimeNow().isBefore(oldexpiredatetime))
     return sendResponse(res, 200, "success", "error", "You can only request a new password reset token once every 5 minutes");
 
   const passwordResetToken = generateRandomString(30);
-  const expiredDate = getExtendDatetime(0, 0, 5);
+  const expireDate = getExtendDatetime(0, 0, 5);
   const createdDateTime = getStringDatetimeNow();
-  const result = await client.query("UPDATE tbpasswordreset SET passwordtoken = $2, expireddate = $3, createddate = $4 WHERE email = $1", [
+  const result = await client.query("UPDATE tbpasswordreset SET passwordtoken = $2, expiredate = $3, createddate = $4 WHERE email = $1", [
     params.email,
     passwordResetToken,
-    expiredDate,
+    expireDate,
     createdDateTime,
   ]);
   if (result.rowCount > 0) {
     await sendEmail(
       params.email,
       "Password reset",
-      `Your password reset link is ${process.env.FRONTEND_URL}/passwordrecovery/confirm?token=${passwordResetToken}, it will expire in 5 minutes at ${expiredDate}!`
+      `Your password reset link is ${process.env.FRONTEND_URL}/passwordrecovery/confirm?token=${passwordResetToken}, it will expire in 5 minutes at ${expireDate}!`
     );
     sendResponse(res, 200, "success", "success", "Check your email for password reset link");
   } else {
@@ -203,11 +212,11 @@ export const createResetPasswordToken = errorHandler(async (req, res, next, clie
 
 export const checkResetPasswordToken = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
-  const result = await client.query("SELECT expireddate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
+  const result = await client.query("SELECT expiredate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result.rowCount > 0) {
     const datetimenow = getStringDatetimeNow();
-    const exireddate = result.rows[0].expireddate;
-    if (moment(datetimenow).isSameOrBefore(exireddate)) {
+    const exireddate = result.rows[0].expiredate;
+    if (getDatetimeNow().isSameOrBefore(exireddate)) {
       return sendResponse(res, 200, "success", "success", "Exist password reset token");
     } else return sendResponse(res, 200, "success", "error", "Expired password reset token");
   } else return sendResponse(res, 200, "success", "error", "Invalid password reset token");
@@ -215,14 +224,14 @@ export const checkResetPasswordToken = errorHandler(async (req, res, next, clien
 
 export const verifyResetPassword = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
-  const result = await client.query("SELECT email, expireddate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
+  const result = await client.query("SELECT email, expiredate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result) {
     const datetimenow = getStringDatetimeNow();
-    const exireddate = result.rows[0].expireddate;
-    if (moment(datetimenow).isSameOrBefore(exireddate)) {
+    const exireddate = result.rows[0].expiredate;
+    if (getDatetimeNow().isSameOrBefore(exireddate)) {
       let hashedpassword = await bcrypt.hash(params.newpassword, 10);
       await client.query("UPDATE tbuserinfo SET password = $1 WHERE email = $2", [hashedpassword, result.rows[0].email]);
-      await client.query("UPDATE tbpasswordreset SET passwordtoken = null, expireddate = null, createddate = null WHERE email = $2", [
+      await client.query("UPDATE tbpasswordreset SET passwordtoken = null, expiredate = null, createddate = null WHERE email = $2", [
         hashedpassword,
         result.rows[0].email,
       ]);
