@@ -194,3 +194,12 @@ export function sortObject(obj) {
   }
   return sorted;
 }
+
+export function getPageSize() {
+  return Number(process.env.PAGE_SIZE);
+}
+
+export function getQueryOffset(page) {
+  page = parseInt(page) || 1;
+  return (Number(page) - 1) * Number(process.env.PAGE_SIZE);
+}

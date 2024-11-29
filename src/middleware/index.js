@@ -10,13 +10,17 @@ export async function authenticateJWT(req, res, next) {
   const { accessToken, refreshToken } = req.cookies;
 
   if (!refreshToken) {
-    return sendResponse(res, 401, "success", "error", "Refresh token is missing");
+    return sendResponse(res, 200, "success", "error", "Refresh token is missing");
   }
 
   const accessSecretKey = process.env.ACCESS_TOKEN_SECRET;
   const refreshSecretKey = process.env.REFRESH_TOKEN_SECRET;
   jwt.verify(refreshToken, refreshSecretKey, async (err, user) => {
     if (!err) {
+      const check = await checkValidRefreshToken(refreshToken, user.userid);
+      if (!check) {
+        return sendResponse(res, 401, "success", "error", "Invalid refreshToken");
+      }
       jwt.verify(accessToken, accessSecretKey, async (err) => {
         if (!err) {
           req.user = user;
@@ -44,8 +48,8 @@ export async function authenticateJWT(req, res, next) {
 async function checkValidRefreshToken(refreshToken, userid) {
   const client = await dbPool.connect();
   try {
-    let result = await client.query("SELECT refreshToken FROM tbloginhistory WHERE userid = $1 and now() < t.expiredate ", [userid]);
-    if (result.rows.length > 0) {
+    let result = await client.query("SELECT refreshToken FROM tbloginhistory WHERE userid = $1 and now() < expiredate ", [userid]);
+    if (result.rowCount > 0) {
       if (result.rows[0].refreshtoken == refreshToken) {
         return true;
       }

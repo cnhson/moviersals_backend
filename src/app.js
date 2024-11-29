@@ -80,7 +80,6 @@ app.use("/test", (req, res) => {
 
 // Invalid API path middleware
 app.use((req, res) => {
-  console.log("wat");
   sendResponse(res, 404, "fail", "error", "Invalid API path");
 });
 

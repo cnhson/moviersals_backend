@@ -1,8 +1,10 @@
 import { subcriptionSchema } from "../schema/index.js";
-import { errorHandler, preProcessingBodyParam, sendResponse } from "../util/index.js";
+import { errorHandler, getPageSize, getQueryOffset, preProcessingBodyParam, sendResponse } from "../util/index.js";
 
 export const getAllSubcriptionPlan = errorHandler(async (req, res, next, client) => {
-  const result = await client.query("SELECT * FROM tbsubcriptionplaninfo");
+  const offset = getQueryOffset(req.query.page);
+  const size = getPageSize();
+  const result = await client.query("SELECT * FROM tbsubcriptionplaninfo LIMIT $1 OFFSET $2", [size, offset]);
   sendResponse(res, 200, "success", "success", result.rows);
 });
 

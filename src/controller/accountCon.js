@@ -13,6 +13,8 @@ import {
   getConvertedDatetime,
   getDatetimeNow,
   getInputExtendDatetime,
+  getQueryOffset,
+  getPageSize,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -80,7 +82,7 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
   const requestip = getReqIpAddress(req);
   console.log(requestip);
   const activecheck = await client.query('select "isactive" = false as check from tbuserinfo t where t.username = $1', [params.username]);
-  if (activecheck.rows[0].check) return sendResponse(res, 200, "success", "Account is locked");
+  if (activecheck.rows[0].check) return sendResponse(res, 200, "success", "error", "Account is locked");
   const result = await client.query("SELECT * FROM tbuserinfo WHERE username = $1", [params.username]);
   if (result.rowCount == 0) {
     return sendResponse(res, 200, "success", "error", "Account not exist");
@@ -103,11 +105,11 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
     const expireDate = getExtendDatetime(7, 0, 0);
     await client.query(
       "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where userid = $1",
-      [user.userid, requestip, loginDate, refreshToken, expireDate]
+      [user.id, requestip, loginDate, refreshToken, expireDate]
     );
     return sendResponse(res, 200, "success", "success", "Login successfully");
   } else {
-    return sendResponse(res, 200, "success", "error", "Login failed");
+    return sendResponse(res, 200, "success", "error", "Incorrect password");
   }
 });
 
@@ -241,8 +243,11 @@ export const verifyResetPassword = errorHandlerTransaction(async (req, res, next
 });
 
 export const getAllUser_ = errorHandler(async (req, res, next, client) => {
+  const offset = getQueryOffset(req.query.page);
+  const size = getPageSize();
   const result = await client.query(
-    "SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin'"
+    "SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin' LIMIT $1 OFFSET $2",
+    [size, offset]
   );
   return sendResponse(res, 200, "success", "success", result.rows);
 });

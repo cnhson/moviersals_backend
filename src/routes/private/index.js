@@ -21,6 +21,7 @@ router.post("/episode/increaseview", episodeCon.increaseEpisodeView);
 // Paypal
 router.post("/order/create/paypal", orderCon.createPaypalOrder);
 router.post("/order/getDetail", orderCon.getOrderPaymentDetail);
+router.get("/order/history", orderCon.getOrderHistory);
 
 // VNPay
 router.post("/order/create/vnpay", orderCon.createVNPayTransaction);

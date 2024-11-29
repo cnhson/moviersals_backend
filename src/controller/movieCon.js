@@ -6,6 +6,8 @@ import {
   preProcessingBodyParam,
   preProcessingUrlParam,
   convertToPlainText,
+  getQueryOffset,
+  getPageSize,
 } from "../util/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
 import { movieSchema } from "../schema/index.js";
@@ -17,7 +19,14 @@ export const testUploadImage_ = errorHandler(async (req, res, next, client) => {
 });
 
 export const getMovieList = errorHandler(async (req, res, next, client) => {
-  const result = await client.query("SELECT id, movieid, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo");
+  const offset = getQueryOffset(req.query.page);
+  const size = getPageSize();
+
+  console.log("page", offset);
+  const result = await client.query(
+    "SELECT id, movieid, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo LIMIT $1 OFFSET $2",
+    [size, offset]
+  );
   const movieList = result.rows;
   sendResponse(res, 200, "success", "success", movieList);
 });

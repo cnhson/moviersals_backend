@@ -15,6 +15,8 @@ import {
   convertVnPayDatetime,
   getDatetimeNow,
   getConvertedDatetime,
+  getQueryOffset,
+  getPageSize,
 } from "../util/index.js";
 import { orderSchema } from "../schema/index.js";
 
@@ -34,8 +36,8 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
     const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
 
     await client.query(
-      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, status]
+      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status, amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, status, subcriptioninfo.rows[0].amount]
     );
     await client.query(
       "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -51,7 +53,9 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
 });
 
 export const getAllOrders_ = errorHandler(async (req, res, next, client) => {
-  const result = await client.query("SELECT * FROM tborderhistory");
+  const offset = getQueryOffset(req.query.page);
+  const size = getPageSize();
+  const result = await client.query("SELECT * FROM tborderhistory LIMIT $1 OFFSET $2", [size, offset]);
   sendResponse(res, 200, "success", "success", result.rows);
 });
 
@@ -69,6 +73,13 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
       return sendResponse(res, 200, "success", "error", "Payment method not exist");
   }
   const result = await client.query("SELECT * FROM " + tableName + " WHERE paymentid = $1", [params.paymentid]);
+  return sendResponse(res, 200, "success", "success", result.rows);
+});
+
+export const getOrderHistory = errorHandler(async (req, res, next, client) => {
+  const offset = getQueryOffset(req.query.page);
+  const size = getPageSize();
+  const result = await client.query("SELECT * FROM tborderhistory WHERE userid = $1 LIMIT $2 OFFSET $3", [req.user.userid, size, offset]);
   return sendResponse(res, 200, "success", "success", result.rows);
 });
 
@@ -142,11 +153,10 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
     "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status, paymenturl) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
     [orderid, userid, params.subcriptionid, "VNPAY", orderId, createddate, status, vnpUrl]
   );
-  await client.query("insert into tbvnpaypayment (paymentid, description, transstatus, amount, createddate) VALUES ($1, $2, $3, $4, $5)", [
+  await client.query("insert into tbvnpaypayment (paymentid, description, transstatus, createddate) VALUES ($1, $2, $3, $4)", [
     orderId,
     orderdescription,
     transstatus,
-    amount,
     createddate,
   ]);
 
@@ -197,19 +207,17 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
             //thanh cong
 
             const paymentstatus = "PAID";
-            await client.query("UPDATE tborderhistory SET status = $1, paymentdate = $2 WHERE paymentid = $3", [
+            await client.query("UPDATE tborderhistory SET status = $2, paymentdate = $3, amount = $4 WHERE paymentid = $1", [
+              orderId,
               paymentstatus,
               paymentdate,
-              orderId,
+              amount,
             ]);
 
-            await client.query("UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, transstatus = $5 WHERE paymentid = $1", [
-              orderId,
-              banktranno,
-              cardType,
-              bankCode,
-              transstatus,
-            ]);
+            await client.query(
+              "UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, transstatus = $5, amount = $6 WHERE paymentid = $1",
+              [orderId, banktranno, cardType, bankCode, transstatus, amount]
+            );
 
             res.status(200).json({ RspCode: "00", Message: "Success" });
           } else {
