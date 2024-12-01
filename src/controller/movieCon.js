@@ -8,6 +8,7 @@ import {
   convertToPlainText,
   getQueryOffset,
   getPageSize,
+  getDatetimeNow,
 } from "../util/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
 import { movieSchema } from "../schema/index.js";
@@ -22,7 +23,6 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
 
-  console.log("page", offset);
   const result = await client.query(
     "SELECT id, movieid, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo LIMIT $1 OFFSET $2",
     [size, offset]
@@ -41,6 +41,13 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
 
 export const getMovieEpisode = errorHandler(async (req, res, next, client) => {
   const params = preProcessingUrlParam(req);
+  const check = await client.query("SELECT ispremium FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
+  if (check.rowCount == 0) return sendResponse(res, 200, "success", "error", "Movie not exist");
+
+  const ispremium = check.rows[0].ispremium;
+  const usercheck = await client.query("SELECT usingend FROM tbusersubscription WHERE userid = $1", [req.user.userid]);
+  if (getDatetimeNow().isAfter(usercheck.rows[0].usingend) && ispremium)
+    return sendResponse(res, 200, "success", "error", "Only premium user can access!");
   const result = await client.query("SELECT * FROM tbmovieepisode WHERE movieid = $1 and episodenumber = $2", [
     params.movieid,
     params.episodeid,

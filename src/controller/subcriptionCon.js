@@ -4,7 +4,7 @@ import { errorHandler, getPageSize, getQueryOffset, preProcessingBodyParam, send
 export const getAllSubcriptionPlan = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
-  const result = await client.query("SELECT * FROM tbsubcriptionplaninfo LIMIT $1 OFFSET $2", [size, offset]);
+  const result = await client.query("SELECT * FROM tbsubcriptionplaninfo order by id LIMIT $1 OFFSET $2 ", [size, offset]);
   sendResponse(res, 200, "success", "success", result.rows);
 });
 
@@ -22,7 +22,7 @@ export const createSubcriptionPlan_ = errorHandler(async (req, res, next, client
 export const editSubcriptionPlan_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, subcriptionSchema.editSubcription_Params);
 
-  const result = await client.query("UPDATE tbsubcriptionplaninfo set name = $2, amount = $3, daysduration = $4 where subcriptionid = $1", [
+  await client.query("UPDATE tbsubcriptionplaninfo set name = $2, amount = $3, daysduration = $4 where subcriptionid = $1", [
     params.subcriptionid,
     params.name,
     params.amount,

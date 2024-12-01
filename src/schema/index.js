@@ -44,3 +44,9 @@ export const subcriptionSchema = {
   createSubcription_Params: ["subcriptionid", "name", "amount", "daysduration"],
   editSubcription_Params: ["subcriptionid", "name", "amount", "daysduration"],
 };
+
+export const commentSchema = {
+  createCommentParams: ["movieid", "content", "rating"],
+  editCommentParams: ["id", "movieid", "content", "rating"],
+  deleteCommentParams: ["id", "movieid"],
+};

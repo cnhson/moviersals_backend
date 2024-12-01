@@ -16,7 +16,6 @@ router.post("/confirmResetPassword", accountCon.verifyResetPassword);
 // Movie
 router.get("/movie/getAll", movieCon.getMovieList);
 router.get("/movie/detail/:movieid", movieCon.getMovieDetail);
-router.get("/movie/watch/:movieid/:episodeid", movieCon.getMovieEpisode);
 router.post("/movie/filter", movieCon.categoriesFilter);
 
 // Subcripiton

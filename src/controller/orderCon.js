@@ -44,8 +44,8 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
       [params.id, paypalorderid, params.email, params.payerid, params.amount, createddate]
     );
     await client.query(
-      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, activetime = activetime + 1 where userid = $1",
-      [userid, true, createddate, expiredate]
+      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5, activetime = activetime + 1 where userid = $1",
+      [userid, true, createddate, expiredate, params.subcriptionid]
     );
     return sendResponse(res, 200, "success", "success", "Create order successfully");
   }
@@ -118,7 +118,8 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   let returnUrl = process.env.FRONTEND_URL + "/vnpay/return";
 
   let orderId = "VNPAY_" + generateRandomString(20);
-  let orderdescription = "Thanh toan cho ma GD: " + orderId + ", ma goi dich vu: " + params.subcriptionid;
+  let orderdescription =
+    "Thanh toan cho ma GD: " + orderId + ", ma goi dich vu: " + params.subcriptionid + ", ma khach hang: " + req.user.userid + ",";
   let amount = req.body.amount;
   let locale = "vn";
   let currCode = "VND";
@@ -175,7 +176,7 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
   vnp_Params = sortObject(vnp_Params);
   let cardType = vnp_Params["vnp_CardType"];
   let bankCode = vnp_Params["vnp_BankCode"];
-  // let description = vnp_Params["vnp_OrderInfo"];
+  let description = vnp_Params["vnp_OrderInfo"];
   let transstatus = vnp_Params["vnp_TransactionStatus"];
   let secretKey = process.env.VNPAY_SECREY_KEY;
   let signData = queryStringify(vnp_Params);
@@ -205,23 +206,45 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
           //kiểm tra tình trạng giao dịch trước khi cập nhật tình trạng thanh toán
           if (rspCode == "00") {
             //thanh cong
+            const regex = /:\s*([^,]+)/g;
+            const matches = [];
 
-            const paymentstatus = "PAID";
-            await client.query("UPDATE tborderhistory SET status = $2, paymentdate = $3, amount = $4 WHERE paymentid = $1", [
-              orderId,
-              paymentstatus,
-              paymentdate,
-              amount,
-            ]);
+            // orderid | subcriptionid | userid
+            let splitData;
 
-            await client.query(
-              "UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, transstatus = $5, amount = $6 WHERE paymentid = $1",
-              [orderId, banktranno, cardType, bankCode, transstatus, amount]
-            );
+            while ((splitData = regex.exec(description)) !== null) {
+              matches.push(splitData[1].trim());
+            }
 
-            res.status(200).json({ RspCode: "00", Message: "Success" });
+            const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [splitData[1]]);
+            if (subcriptioninfo.rowCount == 1) {
+              const duration = subcriptioninfo.rows[0].daysduration;
+
+              const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [splitData[2]]);
+
+              const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
+
+              await client.query(
+                "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5, activetime = activetime + 1 where userid = $1",
+                [splitData[2], true, getStringDatetimeNow(), expiredate, splitData[1]]
+              );
+
+              const paymentstatus = "PAID";
+              await client.query("UPDATE tborderhistory SET status = $2, paymentdate = $3, amount = $4 WHERE paymentid = $1", [
+                orderId,
+                paymentstatus,
+                paymentdate,
+                amount,
+              ]);
+
+              await client.query(
+                "UPDATE tbvnpaypayment SET id = $2, cardtype = $3, bankcode = $4, transstatus = $5, amount = $6 WHERE paymentid = $1",
+                [orderId, banktranno, cardType, bankCode, transstatus, amount]
+              );
+
+              res.status(200).json({ RspCode: "00", Message: "Success" });
+            } else res.status(200).json({ RspCode: "02", Message: "Subcription id not exist" });
           } else {
-            //that bai
             res.status(200).json({ RspCode: "00", Message: "Success" });
           }
         } else {

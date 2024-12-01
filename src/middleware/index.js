@@ -17,7 +17,7 @@ export async function authenticateJWT(req, res, next) {
   const refreshSecretKey = process.env.REFRESH_TOKEN_SECRET;
   jwt.verify(refreshToken, refreshSecretKey, async (err, user) => {
     if (!err) {
-      const check = await checkValidRefreshToken(refreshToken, user.userid);
+      const check = await checkValidRefreshToken(refreshToken);
       if (!check) {
         return sendResponse(res, 401, "success", "error", "Invalid refreshToken");
       }
@@ -45,14 +45,12 @@ export async function authenticateJWT(req, res, next) {
   });
 }
 
-async function checkValidRefreshToken(refreshToken, userid) {
+async function checkValidRefreshToken(refreshToken) {
   const client = await dbPool.connect();
   try {
-    let result = await client.query("SELECT refreshToken FROM tbloginhistory WHERE userid = $1 and now() < expiredate ", [userid]);
-    if (result.rowCount > 0) {
-      if (result.rows[0].refreshtoken == refreshToken) {
-        return true;
-      }
+    let result = await client.query("SELECT 1 FROM tbloginhistory WHERE refreshtoken = $1 and now() < expiredate ", [refreshToken]);
+    if (result.rowCount == 1) {
+      return true;
     }
     return false;
   } catch (error) {

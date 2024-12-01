@@ -34,7 +34,7 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   await client.query("INSERT INTO tbloginhistory (userid) VALUES ($1)", [userid]);
   await client.query("INSERT INTO tbpasswordreset (userid, email) VALUES ($1)", [userid, params.email]);
   await client.query("INSERT INTO tbemailverification (userid, email) VALUES ($1)", [userid, params.email]);
-  await client.query("INSERT INTO tbusersubscription (userid) VALUES ($1)", [userid]);
+  await client.query("INSERT INTO tbusersubscription (userid, subcriptionid) VALUES ($1,'FREE')", [userid]);
   await client.query("INSERT INTO tbfavouritelist (userid) VALUES ($1)", [userid]);
 
   return sendResponse(res, 200, "success", "Account created successfully");
@@ -80,7 +80,6 @@ export const editAccountInfo = errorHandler(async (req, res, next, client) => {
 export const loginAccount = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.loginAccountParams);
   const requestip = getReqIpAddress(req);
-  console.log(requestip);
   const activecheck = await client.query('select "isactive" = false as check from tbuserinfo t where t.username = $1', [params.username]);
   if (activecheck.rows[0].check) return sendResponse(res, 200, "success", "error", "Account is locked");
   const result = await client.query("SELECT * FROM tbuserinfo WHERE username = $1", [params.username]);
@@ -91,11 +90,52 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
   if (bcrypt.compareSync(params.password, user.password)) {
     let accessToken, refreshToken;
 
+    const newRefreshToken = jwt.sign({ userid: user.id, role: user.role, isverified: user.isverified }, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: "7d",
+    });
+
+    const storeinfo = await client.query("select refreshtoken from tbloginhistory where userid = $1", [user.id]);
+    const subcriptionconfig = await client.query(
+      `select t2.connection  from tbusersubscription t join tbsubcriptionplaninfo t2 
+      on t.subcriptionid = t2.subcriptionid where t.userid = $1`,
+      [user.id]
+    );
+    const maxconnection = Number(subcriptionconfig.rows[0].connection);
+
+    // get logined ip address array
+    const ipaddresslist = await client.query("select useripaddress from tbloginhistory where userid = $1", [user.id]);
+    let ipaddressArray = ipaddresslist.rows[0].useripaddress;
+
+    if (ipaddressArray == null || ipaddressArray.length == 0 || storeinfo.rows[0].refreshtoken == null) {
+      // if ipaddress array is null or refresh token is null
+      refreshToken = newRefreshToken;
+      ipaddressArray = [requestip];
+    } else if (ipaddressArray.length == maxconnection) {
+      // if ipaddress array is full and request ip is in ipaddress array
+      if (ipaddressArray.includes(requestip)) refreshToken = storeinfo.rows[0].refreshtoken;
+      else {
+        /* if ipaddress array is full and request ip is not in ipaddress array, there are no more slots for this user, 
+        then generate new refresh token and clear all user ipaddress */
+        refreshToken = newRefreshToken;
+        ipaddressArray = [];
+        ipaddressArray.push(requestip);
+      }
+    } else if (ipaddressArray.length > maxconnection) {
+      refreshToken = newRefreshToken;
+      ipaddressArray = [];
+      ipaddressArray.push(requestip);
+    } else {
+      // if ipaddress array is not full and request ip is in ipaddress array
+      if (ipaddressArray.includes(requestip)) refreshToken = storeinfo.rows[0].refreshtoken;
+      else {
+        // if ipaddress array is not full and request ip is not in ipaddress array
+        refreshToken = storeinfo.rows[0].refreshtoken;
+        ipaddressArray.push(requestip);
+      }
+    }
+
     accessToken = jwt.sign({ userid: user.id, role: user.role, isverified: user.isverified }, process.env.ACCESS_TOKEN_SECRET, {
       expiresIn: "1h",
-    });
-    refreshToken = jwt.sign({ userid: user.id, role: user.role, isverified: user.isverified }, process.env.REFRESH_TOKEN_SECRET, {
-      expiresIn: "7d",
     });
 
     createToken(res, "accessToken", accessToken, 3600 * 1000);
@@ -105,7 +145,7 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
     const expireDate = getExtendDatetime(7, 0, 0);
     await client.query(
       "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where userid = $1",
-      [user.id, requestip, loginDate, refreshToken, expireDate]
+      [user.id, ipaddressArray, loginDate, refreshToken, expireDate]
     );
     return sendResponse(res, 200, "success", "success", "Login successfully");
   } else {

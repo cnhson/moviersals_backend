@@ -1,8 +1,9 @@
 import { Router } from "express";
+import { multerType } from "../../middleware/multer.js";
 import * as accountCon from "../../controller/accountCon.js";
 import * as episodeCon from "../../controller/episodeCon.js";
 import * as orderCon from "../../controller/orderCon.js";
-import { multerType } from "../../middleware/multer.js";
+import * as movieCon from "../../controller/movieCon.js";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.post("/account/logout", accountCon.logoutAccount);
 router.post("/account/verifyEmail", accountCon.verifyEmail);
 
 // Episode
+router.get("/movie/watch/:movieid/:episodeid", movieCon.getMovieEpisode);
 router.post("/episode/increaseview", episodeCon.increaseEpisodeView);
 
 // Paypal
