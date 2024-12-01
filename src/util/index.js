@@ -154,6 +154,22 @@ export function errorHandlerTransaction(fn) {
   };
 }
 
+export function errorHandlerTransactionPlain(fn) {
+  return async () => {
+    const client = await dbPool.connect();
+    try {
+      await client.query("BEGIN");
+      await fn(client);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.log(error);
+    } finally {
+      client.release();
+    }
+  };
+}
+
 export function convertToPlainText(input) {
   try {
     if (typeof input == "string") {

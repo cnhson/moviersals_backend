@@ -17,6 +17,7 @@ import {
   getConvertedDatetime,
   getQueryOffset,
   getPageSize,
+  errorHandlerTransactionPlain,
 } from "../util/index.js";
 import { orderSchema } from "../schema/index.js";
 
@@ -43,10 +44,9 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
       "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
       [params.id, paypalorderid, params.email, params.payerid, params.amount, createddate]
     );
-    await client.query(
-      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5, activetime = activetime + 1 where userid = $1",
-      [userid, true, createddate, expiredate, params.subcriptionid]
-    );
+
+    (await handleUpdateUserSubscription(userid, params.subcriptionid, createddate, expiredate))();
+
     return sendResponse(res, 200, "success", "success", "Create order successfully");
   }
   return sendResponse(res, 200, "success", "error", "Subcription not exist");
@@ -99,8 +99,8 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   if (checkpending.rowCount > 0) {
     const currentdatetime = getDatetimeNow();
     const createddatetime = getConvertedDatetime(checkpending.rows[0].createddate);
-    // Check if there is a previous pending order which is not expired yet (hasn't passed 15 minutes)
-    if (currentdatetime.isBefore(getInputExtendDatetime(createddatetime, 0, 0, 15))) {
+    // Check if there is a previous pending order which is not expired yet (hasn't passed 10 seconds)
+    if (currentdatetime.isBefore(getInputExtendDatetime(createddatetime, 0, 0, 0.166666))) {
       return sendResponse(res, 200, "success", "success", checkpending.rows[0].paymenturl);
     } else {
       await client.query("delete from tborderhistory where paymentid = $1", [checkpending.rows[0].paymentid]);
@@ -151,14 +151,15 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   const transstatus = "01";
 
   await client.query(
-    "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status, paymenturl) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    [orderid, userid, params.subcriptionid, "VNPAY", orderId, createddate, status, vnpUrl]
+    "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status, paymenturl, amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    [orderid, userid, params.subcriptionid, "VNPAY", orderId, createddate, status, vnpUrl, amount]
   );
-  await client.query("insert into tbvnpaypayment (paymentid, description, transstatus, createddate) VALUES ($1, $2, $3, $4)", [
+  await client.query("insert into tbvnpaypayment (paymentid, description, transstatus, createddate, amount) VALUES ($1, $2, $3, $4, $5)", [
     orderId,
     orderdescription,
     transstatus,
     createddate,
+    amount,
   ]);
 
   sendResponse(res, 200, "success", "success", vnpUrl);
@@ -196,6 +197,9 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
     [orderId]
   );
 
+  // decode url string
+  description = decodeURIComponent(description.replace(/\+/g, " "));
+
   let checkOrderId = vnpayordercheck.rows[0].paymentid == orderId ? true : false;
   let checkAmount = Number(vnpayordercheck.rows[0].amount) == amount ? true : false;
   if (secureHash === signed) {
@@ -207,27 +211,24 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
           if (rspCode == "00") {
             //thanh cong
             const regex = /:\s*([^,]+)/g;
-            const matches = [];
+            const splitDataArray = [];
 
             // orderid | subcriptionid | userid
             let splitData;
 
             while ((splitData = regex.exec(description)) !== null) {
-              matches.push(splitData[1].trim());
+              splitDataArray.push(splitData[1].trim());
             }
-
-            const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [splitData[1]]);
+            console.log("array: ", splitDataArray);
+            const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [splitDataArray[1]]);
             if (subcriptioninfo.rowCount == 1) {
               const duration = subcriptioninfo.rows[0].daysduration;
 
-              const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [splitData[2]]);
+              const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [splitDataArray[2]]);
 
               const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
 
-              await client.query(
-                "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5, activetime = activetime + 1 where userid = $1",
-                [splitData[2], true, getStringDatetimeNow(), expiredate, splitData[1]]
-              );
+              (await handleUpdateUserSubscription(splitDataArray[2], splitDataArray[1], getStringDatetimeNow(), expiredate))();
 
               const paymentstatus = "PAID";
               await client.query("UPDATE tborderhistory SET status = $2, paymentdate = $3, amount = $4 WHERE paymentid = $1", [
@@ -260,3 +261,41 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
     res.status(200).json({ RspCode: "97", Message: "Checksum failed" });
   }
 });
+
+const handleUpdateUserSubscription = async (userid, new_subcriptionid, usingstart, usingend) =>
+  errorHandlerTransactionPlain(async (client) => {
+    console.log("handleUpdateUserSubscription", userid, new_subcriptionid, usingstart, usingend);
+
+    let current_subcriptionid;
+    const compareSubcription = await client.query(
+      `
+      SELECT t.priority,  t.subcriptionid  
+      FROM tbsubcriptionplaninfo t 
+      JOIN tbusersubscription t2 
+        ON t.subcriptionid = t2.subcriptionid 
+      WHERE t2.userid = $1
+
+      UNION ALL
+
+      SELECT t.priority, t.subcriptionid 
+      FROM tbsubcriptionplaninfo t 
+      WHERE t.subcriptionid = $2;
+    `,
+      [userid, new_subcriptionid]
+    );
+
+    if (compareSubcription.rowCount == 1) {
+      current_subcriptionid = compareSubcription.rows[0].subcriptionid;
+      console.log("same priority");
+    } else {
+      console.log("different priority");
+      if (compareSubcription.rows[0].priority > compareSubcription.rows[1].priority)
+        current_subcriptionid = compareSubcription.rows[0].subcriptionid;
+      else current_subcriptionid = compareSubcription.rows[1].subcriptionid;
+    }
+
+    await client.query(
+      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5, activetime = activetime + 1 where userid = $1",
+      [userid, true, usingstart, usingend, current_subcriptionid]
+    );
+  });

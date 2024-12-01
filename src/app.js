@@ -4,31 +4,9 @@ import publicRoutes from "./routes/public/index.js";
 import privateRoutes from "./routes/private/index.js";
 import internalRoutes from "./routes/internal/index.js";
 import { isPrivileged, authenticateJWT } from "./middleware/index.js";
-import { sendResponse } from "./util/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
-import moment from "moment";
-
-// const wss = new WebSocketServer({
-//   host: "0.0.0.0",
-//   port: 8080,
-//   perMessageDeflate: {
-//     zlibDeflateOptions: {
-//       // See zlib defaults.
-//       chunkSize: 1024,
-//       memLevel: 7,
-//       level: 3,
-//     },
-//     zlibInflateOptions: {
-//       chunkSize: 10 * 1024,
-//     },
-//     clientNoContextTakeover: true, // Defaults to negotiated value.
-//     serverNoContextTakeover: true, // Defaults to negotiated value.
-//     serverMaxWindowBits: 10, // Defaults to negotiated value.
-//     concurrencyLimit: 10, // Limits zlib concurrency for perf.
-//     threshold: 1024, // Size (in bytes) below which messages
-//   },
-// });
+import { sendResponse } from "./util/index.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
