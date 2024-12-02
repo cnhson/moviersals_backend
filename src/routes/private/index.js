@@ -4,6 +4,7 @@ import * as accountCon from "../../controller/accountCon.js";
 import * as episodeCon from "../../controller/episodeCon.js";
 import * as orderCon from "../../controller/orderCon.js";
 import * as movieCon from "../../controller/movieCon.js";
+import * as commentCon from "../../controller/commentCon.js";
 
 const router = Router();
 
@@ -27,5 +28,10 @@ router.get("/order/history", orderCon.getOrderHistory);
 
 // VNPay
 router.post("/order/create/vnpay", orderCon.createVNPayTransaction);
+
+// Comment
+router.post("/comment/create", commentCon.createComment);
+router.post("/comment/edit", commentCon.editComment);
+router.post("/comment/delete", commentCon.removeComment);
 
 export default router;

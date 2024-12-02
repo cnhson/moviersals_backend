@@ -36,7 +36,7 @@ function buildParams(fields) {
 function validateFields(fields) {
   let missingKey = [];
   for (const [key, value] of Object.entries(fields)) {
-    if (value == null || value.trim() == "") {
+    if (value == null || value == "" || value == undefined) {
       missingKey.push(key);
     }
   }
@@ -47,7 +47,14 @@ function validateFields(fields) {
 
 export function preProcessingBodyParam(req, schema) {
   const processingParams = buildParams(schema);
-  Object.assign(processingParams, req.body);
+
+  const filteredBody = Object.keys(req.body)
+    .filter((key) => processingParams.hasOwnProperty(key)) // only include keys present in schema
+    .reduce((obj, key) => {
+      obj[key] = req.body[key]; // assign values of valid keys
+      return obj;
+    }, {});
+  Object.assign(processingParams, filteredBody);
   validateFields(processingParams);
   return processingParams;
 }

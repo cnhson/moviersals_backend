@@ -28,7 +28,7 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
     FROM tbmovieinfo t
     full join tbmoviecomment t2 ON t.movieid = t2.movieid
     GROUP BY 
-    t.id, t.movieid, t.name, t.thumbnail, t.publishyear, t.categories, t.type, t.ispremium;
+    t.id, t.movieid, t.name, t.thumbnail, t.publishyear, t.categories, t.type, t.ispremium
     LIMIT $1 OFFSET $2`,
     [size, offset]
   );

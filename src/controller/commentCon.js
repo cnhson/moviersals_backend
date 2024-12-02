@@ -24,11 +24,12 @@ export const createComment = errorHandler(async (req, res, next, client) => {
 
   if (check.rowCount == 1) return sendResponse(res, 200, "success", "error", "You have already commented");
 
-  await client.query("Insert into tbmoviecomment (movieid, userid, comment, createddate) VALUES ($1, $2, $3, $4)", [
+  await client.query("Insert into tbmoviecomment (movieid, userid, content, createddate, rating) VALUES ($1, $2, $3, $4, $5)", [
     params.movieid,
     req.user.userid,
-    params.comment,
+    params.content,
     getStringDatetimeNow(),
+    params.rating,
   ]);
 
   sendResponse(res, 200, "success", "success", "Add comment successfully");
@@ -41,6 +42,8 @@ export const editComment = errorHandler(async (req, res, next, client) => {
     "UPDATE tbmoviecomment SET content = $4, rating = $5, modifieddate = $6  WHERE userid = $1 and movieid = $2 and id = $3",
     [req.user.userid, params.movieid, params.id, params.content, params.rating, getStringDatetimeNow()]
   );
+
+  sendResponse(res, 200, "success", "success", "Edit comment successfully");
 });
 
 export const removeComment = errorHandler(async (req, res, next, client) => {
@@ -65,7 +68,7 @@ export const getAllComments = errorHandler(async (req, res, next, client) => {
       FROM tbmoviecomment t
       join tbuserinfo t2
       on t.userid = t2.id::text 
-      where t.movieid = $4
+      where t.movieid = $4 and t.isactive = true
       ORDER BY 
       CASE WHEN userid = $1 THEN 0 ELSE 1 end
       LIMIT $2 OFFSET $3 `,
