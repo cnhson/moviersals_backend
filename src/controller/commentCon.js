@@ -57,11 +57,19 @@ export const removeComment = errorHandler(async (req, res, next, client) => {
 export const getAllComments = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
-  const movieid = req.query.movieid;
-  const result = await client.query("SELECT * FROM tbmoviecomment where movieid = $1 order by id LIMIT $2 OFFSET $3 ", [
-    movieid,
-    size,
-    offset,
-  ]);
+  const userid = req.query.userid || "";
+  const movieid = req.params.movieid;
+  const result = await client.query(
+    `
+      SELECT t.*,t2.username, t2.displayname, t2.thumbnail 
+      FROM tbmoviecomment t
+      join tbuserinfo t2
+      on t.userid = t2.id::text 
+      where t.movieid = $4
+      ORDER BY 
+      CASE WHEN userid = $1 THEN 0 ELSE 1 end
+      LIMIT $2 OFFSET $3 `,
+    [userid, size, offset, movieid]
+  );
   sendResponse(res, 200, "success", "success", result.rows);
 });

@@ -24,7 +24,12 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
   const size = getPageSize();
 
   const result = await client.query(
-    "SELECT id, movieid, name, thumbnail, publishyear, categories, type, ispremium FROM tbmovieinfo LIMIT $1 OFFSET $2",
+    `SELECT t.id, t.movieid, t.name, t.thumbnail, t.publishyear, t.categories, t.type, t.ispremium, AVG(t2.rating) AS avgrating
+    FROM tbmovieinfo t
+    full join tbmoviecomment t2 ON t.movieid = t2.movieid
+    GROUP BY 
+    t.id, t.movieid, t.name, t.thumbnail, t.publishyear, t.categories, t.type, t.ispremium;
+    LIMIT $1 OFFSET $2`,
     [size, offset]
   );
   const movieList = result.rows;
