@@ -47,7 +47,7 @@ export const editComment = errorHandler(async (req, res, next, client) => {
 });
 
 export const removeComment = errorHandler(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, commentSchema.editCommentParams);
+  const params = preProcessingBodyParam(req, commentSchema.deleteCommentParams);
 
   await client.query("UPDATE tbmoviecomment SET isactive = false, modifieddate = $4  WHERE userid = $1 and movieid = $2 and id = $3", [
     req.user.userid,
@@ -55,6 +55,8 @@ export const removeComment = errorHandler(async (req, res, next, client) => {
     params.id,
     getStringDatetimeNow(),
   ]);
+
+  sendResponse(res, 200, "success", "success", "Delete comment successfully");
 });
 
 export const getAllComments = errorHandler(async (req, res, next, client) => {
