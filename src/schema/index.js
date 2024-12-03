@@ -50,3 +50,9 @@ export const commentSchema = {
   editCommentParams: ["id", "movieid", "content", "rating"],
   deleteCommentParams: ["id", "movieid"],
 };
+
+export const favouriteSchema = {
+  addFavouriteEpisodeParams: ["movieid", "episodeid"],
+  checlFavouriteEpisodeParams: ["movieid", "episodeid"],
+  deleteFavouriteEpisodeCommentParams: ["id", "movieid", "episodeid"],
+};

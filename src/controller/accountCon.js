@@ -302,7 +302,7 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
   await client.query("update tbuserinfo set ispremium = " + premiumCheck.rows[0].ispremium + " where id = $1", [userid]);
 
   const result = await client.query(
-    `SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified,t2.subcriptionid,thumbnail 
+    `SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,ispremium,isverified,t2.subcriptionid,thumbnail 
     FROM tbuserinfo t
     join tbusersubscription t2 
     on t.id::text = t2.userid where id = $1`,

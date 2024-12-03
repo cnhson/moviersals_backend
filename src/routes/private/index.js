@@ -5,6 +5,7 @@ import * as episodeCon from "../../controller/episodeCon.js";
 import * as orderCon from "../../controller/orderCon.js";
 import * as movieCon from "../../controller/movieCon.js";
 import * as commentCon from "../../controller/commentCon.js";
+import * as favouriteCon from "../../controller/favouriteCon.js";
 
 const router = Router();
 
@@ -33,5 +34,9 @@ router.post("/order/create/vnpay", orderCon.createVNPayTransaction);
 router.post("/comment/create", commentCon.createComment);
 router.post("/comment/edit", commentCon.editComment);
 router.post("/comment/delete", commentCon.removeComment);
+
+// Favourite
+router.post("/favourite/add", favouriteCon.addFavouriteEpisode);
+router.post("/favourite/delete", favouriteCon.removeFavouriteEpisode);
 
 export default router;
