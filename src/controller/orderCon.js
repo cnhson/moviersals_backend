@@ -37,8 +37,8 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
     const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
 
     await client.query(
-      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, status, amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, status, subcriptioninfo.rows[0].amount]
+      "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, paymentdate, status, amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, createddate, status, subcriptioninfo.rows[0].price]
     );
     await client.query(
       "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
@@ -79,7 +79,11 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
 export const getOrderHistory = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
-  const result = await client.query("SELECT * FROM tborderhistory WHERE userid = $1 LIMIT $2 OFFSET $3", [req.user.userid, size, offset]);
+  const result = await client.query("SELECT * FROM tborderhistory WHERE userid = $1 order by createddate LIMIT $2 OFFSET $3", [
+    req.user.userid,
+    size,
+    offset,
+  ]);
   return sendResponse(res, 200, "success", "success", result.rows);
 });
 
@@ -219,7 +223,6 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
             while ((splitData = regex.exec(description)) !== null) {
               splitDataArray.push(splitData[1].trim());
             }
-            console.log("array: ", splitDataArray);
             const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [splitDataArray[1]]);
             if (subcriptioninfo.rowCount == 1) {
               const duration = subcriptioninfo.rows[0].daysduration;
@@ -264,8 +267,6 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
 
 const handleUpdateUserSubscription = async (userid, new_subcriptionid, usingstart, usingend) =>
   errorHandlerTransactionPlain(async (client) => {
-    console.log("handleUpdateUserSubscription", userid, new_subcriptionid, usingstart, usingend);
-
     let current_subcriptionid;
     const compareSubcription = await client.query(
       `
