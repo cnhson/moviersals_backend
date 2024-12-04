@@ -24,11 +24,10 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
   const size = getPageSize();
 
   const result = await client.query(
-    `SELECT t.id, t.movieid, t.name, t.thumbnail, t.publishyear, t.categories, t.type, t.ispremium, AVG(t2.rating) AS avgrating
+    `SELECT t.*, AVG(t2.rating) AS avgrating
     FROM tbmovieinfo t
     full join tbmoviecomment t2 ON t.movieid = t2.movieid
-    GROUP BY 
-    t.id, t.movieid, t.name, t.thumbnail, t.publishyear, t.categories, t.type, t.ispremium
+    GROUP BY t.id
     LIMIT $1 OFFSET $2`,
     [size, offset]
   );
@@ -39,7 +38,14 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
   const movieid = req.params.movieid;
   const episodelist = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1  order by episodenumber asc", [movieid]);
-  const result = await client.query("SELECT * FROM tbmovieinfo WHERE movieid = $1", [movieid]);
+  const result = await client.query(
+    `
+    SELECT t.*, SUM(t2.view) as view FROM tbmovieinfo t  
+    join tbmovieepisode t2 on t.movieid = t2.movieid
+    where t.movieid = $1
+    group by t.id`,
+    [movieid]
+  );
   const movieDetail = result.rows[0];
   sendResponse(res, 200, "success", "success", { movieDetail, list: episodelist.rows });
 });

@@ -35,19 +35,20 @@ export const increaseEpisodeView = errorHandlerTransaction(async (req, res, next
   const params = preProcessingBodyParam(req, episodeSchema.increaseEpisodeViewParams);
   const userid = req.user.userid;
   const ipaddress = getReqIpAddress(req);
-  const check = await client.query("Select episodenumber from tbmovieepisode t where t.movieid = $1 and t.episodeid = $2", [
+  const check = await client.query("Select episodeid from tbmovieepisode t where t.movieid = $1 and t.episodenumber = $2", [
     params.movieid,
-    params.episodeid,
+    params.episodenumber,
   ]);
   if (check.rowCount === 1) {
     const createddate = getStringDatetimeNow();
+    const episodeid = check.rows[0].episodeid;
     const result = await client.query(
       "INSERT INTO tbwatchhistory (userid, movieid, episodeid, ipaddress, createddate) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
-      [userid, params.movieid, params.episodeid, ipaddress, createddate]
+      [userid, params.movieid, episodeid, ipaddress, createddate]
     );
     if (result.rowCount === 1) {
       await client.query("UPDATE tbmovieepisode SET view = view + 1, modifieddate = $3 WHERE episodeid = $1 and movieid = $2", [
-        params.episodeid,
+        episodeid,
         params.movieid,
         createddate,
       ]);

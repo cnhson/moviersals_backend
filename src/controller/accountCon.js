@@ -296,7 +296,8 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
   const userid = req.user.userid;
 
   const premiumCheck = await client.query(
-    "SELECT EXISTS ( SELECT 1 FROM tbusersubscription t where t.usingend > NOW() and t.userid = '9') AS ispremium"
+    "SELECT EXISTS ( SELECT 1 FROM tbusersubscription t where t.usingend > NOW() and isactive = true and t.userid = $1) AS ispremium",
+    [userid]
   );
 
   await client.query("update tbuserinfo set ispremium = " + premiumCheck.rows[0].ispremium + " where id = $1", [userid]);
