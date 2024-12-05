@@ -18,26 +18,25 @@ export const addFavouriteEpisode = errorHandler(async (req, res, next, client) =
   const params = preProcessingBodyParam(req, favouriteSchema.addFavouriteEpisodeParams);
   if (!req.user.userid) return sendResponse(res, 200, "success", "error", "Hãy đăng nhập trước khi thực hiện hành động này");
 
-  await client.query("INSERT INTO tbfavouritelist (userid, movieid, episodeid, createddate) VALUES ($1, $2, $3, $4)", [
+  await client.query("INSERT INTO tbfavouritelist (userid, movieid, episodenumber, createddate) VALUES ($1, $2, $3, $4)", [
     req.user.userid,
     params.movieid,
-    params.episodeid,
+    params.episodenumber,
     getStringDatetimeNow(),
   ]);
-  sendResponse(res, 200, "success", "success", "Add comment successfully");
+  sendResponse(res, 200, "success", "success", "Đã thêm vào danh sách yêu thích");
 });
 
 export const removeFavouriteEpisode = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, favouriteSchema.deleteFavouriteEpisodeCommentParams);
 
-  await client.query("DELETE FROM tbfavouritelist WHERE userid = $1 AND movieid = $2 AND episodeid = $3 and id = $4", [
+  await client.query("DELETE FROM tbfavouritelist WHERE userid = $1 AND movieid = $2 AND episodenumber = $3", [
     req.user.userid,
     params.movieid,
-    params.episodeid,
-    params.id,
+    params.episodenumber,
   ]);
 
-  sendResponse(res, 200, "success", "success", "Delete comment successfully");
+  sendResponse(res, 200, "success", "success", "Đã xóa khỏi danh sách yêu thích");
 });
 
 export const getUserFavouriteList = errorHandler(async (req, res, next, client) => {
@@ -49,11 +48,11 @@ export const getUserFavouriteList = errorHandler(async (req, res, next, client) 
 });
 
 export const checkIfFavourite = errorHandler(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, favouriteSchema.checlFavouriteEpisodeParams);
-  const result = await client.query("SELECT 1 FROM tbfavouritelist where userid = $1 and movieid = $2 and episodeid = $3", [
+  const params = preProcessingBodyParam(req, favouriteSchema.checkFavouriteEpisodeParams);
+  const result = await client.query("SELECT 1 FROM tbfavouritelist where userid = $1 and movieid = $2 and episodenumber = $3", [
     req.user.userid,
     params.movieid,
-    params.episodeid,
+    params.episodenumber,
   ]);
   sendResponse(res, 200, "success", "success", result.rows);
 });

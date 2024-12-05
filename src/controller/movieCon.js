@@ -36,11 +36,24 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
 });
 
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
+  const userid = req.query.userid || "";
   const movieid = req.params.movieid;
-  const episodelist = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1  order by episodenumber asc", [movieid]);
+  const episodelist = await client.query(
+    `SELECT t.*, 
+        CASE 
+            WHEN t2.movieid IS NOT NULL THEN TRUE 
+            ELSE FALSE 
+        END AS isfavourite
+        FROM tbmovieepisode t
+        LEFT JOIN tbfavouritelist t2 
+            ON t.movieid = t2.movieid 
+            AND t2.userid = $1
+        WHERE t.movieid = $2
+        ORDER BY t.episodenumber ASC;`,
+    [userid, movieid]
+  );
   const result = await client.query(
-    `
-    SELECT t.*, SUM(t2.view) as view FROM tbmovieinfo t  
+    ` SELECT t.*, SUM(t2.view) as view FROM tbmovieinfo t  
     join tbmovieepisode t2 on t.movieid = t2.movieid
     where t.movieid = $1
     group by t.id`,

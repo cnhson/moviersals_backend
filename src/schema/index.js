@@ -52,7 +52,7 @@ export const commentSchema = {
 };
 
 export const favouriteSchema = {
-  addFavouriteEpisodeParams: ["movieid", "episodeid"],
-  checlFavouriteEpisodeParams: ["movieid", "episodeid"],
-  deleteFavouriteEpisodeCommentParams: ["id", "movieid", "episodeid"],
+  addFavouriteEpisodeParams: ["movieid", "episodenumber"],
+  checkFavouriteEpisodeParams: ["movieid", "episodenumber"],
+  deleteFavouriteEpisodeCommentParams: ["movieid", "episodenumber"],
 };
