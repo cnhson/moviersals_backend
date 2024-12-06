@@ -46,7 +46,7 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
       [params.id, paypalorderid, params.email, params.payerid, params.amount, createddate]
     );
 
-    (await handleUpdateUserSubscription(userid, params.subcriptionid, createddate, expiredate))();
+    (await handleUpdateUserSubscription(userid, params.subcriptionid, createddate, expiredate, paypalorderid))();
 
     return sendResponse(res, 200, "success", "success", "Create order successfully");
   }
@@ -82,7 +82,7 @@ export const getOrderHistory = errorHandler(async (req, res, next, client) => {
   const size = getPageSize();
   const result = await client.query(
     `WITH base_data AS (
-        SELECT * FROM tborderhistory WHERE userid = $1 order by createddate
+        SELECT * FROM tborderhistory WHERE userid = $1 order by createddate desc
         ),
         total AS (
           SELECT COUNT(*) AS total_count FROM base_data
@@ -246,7 +246,7 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
 
               const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
 
-              (await handleUpdateUserSubscription(splitDataArray[2], splitDataArray[1], getStringDatetimeNow(), expiredate))();
+              (await handleUpdateUserSubscription(splitDataArray[2], splitDataArray[1], getStringDatetimeNow(), expiredate, orderId))();
 
               const paymentstatus = "PAID";
               await client.query("UPDATE tborderhistory SET status = $2, paymentdate = $3, amount = $4 WHERE paymentid = $1", [
@@ -280,38 +280,33 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
   }
 });
 
-const handleUpdateUserSubscription = async (userid, new_subcriptionid, usingstart, usingend) =>
+const handleUpdateUserSubscription = async (userid, new_subcriptionid, usingstart, usingend, paymentid) =>
   errorHandlerTransactionPlain(async (client) => {
-    let current_subcriptionid;
+    let type = "";
     const compareSubcription = await client.query(
       `
-      SELECT t.priority,  t.subcriptionid  
-      FROM tbsubcriptionplaninfo t 
-      JOIN tbusersubscription t2 
-        ON t.subcriptionid = t2.subcriptionid 
+      SELECT t.priority,  t.subcriptionid
+      FROM tbsubcriptionplaninfo t
+      JOIN tbusersubscription t2
+        ON t.subcriptionid = t2.subcriptionid
       WHERE t2.userid = $1
-
-      UNION ALL
-
-      SELECT t.priority, t.subcriptionid 
-      FROM tbsubcriptionplaninfo t 
+      UNION 
+      SELECT t.priority, t.subcriptionid
+      FROM tbsubcriptionplaninfo t
       WHERE t.subcriptionid = $2;
     `,
       [userid, new_subcriptionid]
     );
 
     if (compareSubcription.rowCount == 1) {
-      current_subcriptionid = compareSubcription.rows[0].subcriptionid;
-      console.log("same priority");
+      type = "EXTEND";
     } else {
-      console.log("different priority");
-      if (compareSubcription.rows[0].priority > compareSubcription.rows[1].priority)
-        current_subcriptionid = compareSubcription.rows[0].subcriptionid;
-      else current_subcriptionid = compareSubcription.rows[1].subcriptionid;
+      if (compareSubcription.rows[0].priority > compareSubcription.rows[1].priority) type = "DOWNGRADE";
+      else type = "UPGRADE";
     }
-
+    await client.query("update tborderhistory set type = $2 where paymentid = $1", [paymentid, type]);
     await client.query(
-      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5, activetime = activetime + 1 where userid = $1",
-      [userid, true, usingstart, usingend, current_subcriptionid]
+      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5,activetime = activetime + 1 where userid = $1",
+      [userid, true, usingstart, usingend, new_subcriptionid]
     );
   });
