@@ -10,7 +10,7 @@ export async function authenticateJWT(req, res, next) {
   const { accessToken, refreshToken } = req.cookies;
 
   if (!refreshToken) {
-    return sendResponse(res, 200, "success", "error", "Refresh token is missing");
+    return sendResponse(res, 401, "success", "error", "Refresh token is missing");
   }
 
   const accessSecretKey = process.env.ACCESS_TOKEN_SECRET;
