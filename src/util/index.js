@@ -219,7 +219,7 @@ export function sortObject(obj) {
 }
 
 export function getPageSize() {
-  return Number(process.env.PAGE_SIZE);
+  return Number(process.env.PAGE_SIZE) || 15;
 }
 
 export function getQueryOffset(page) {

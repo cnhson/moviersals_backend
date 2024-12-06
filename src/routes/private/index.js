@@ -36,6 +36,7 @@ router.post("/comment/edit", commentCon.editComment);
 router.post("/comment/delete", commentCon.removeComment);
 
 // Favourite
+router.get("/favourite/get", favouriteCon.getUserFavouriteList);
 router.post("/favourite/add", favouriteCon.addFavouriteEpisode);
 router.post("/favourite/delete", favouriteCon.removeFavouriteEpisode);
 

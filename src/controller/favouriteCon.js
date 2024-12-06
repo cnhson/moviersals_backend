@@ -24,7 +24,7 @@ export const addFavouriteEpisode = errorHandler(async (req, res, next, client) =
     params.episodenumber,
     getStringDatetimeNow(),
   ]);
-  sendResponse(res, 200, "success", "success", "Đã thêm vào danh sách yêu thích");
+  sendResponse(res, 200, "success", "success", "Thêm vào danh sách yêu thích");
 });
 
 export const removeFavouriteEpisode = errorHandler(async (req, res, next, client) => {
@@ -36,15 +36,25 @@ export const removeFavouriteEpisode = errorHandler(async (req, res, next, client
     params.episodenumber,
   ]);
 
-  sendResponse(res, 200, "success", "success", "Đã xóa khỏi danh sách yêu thích");
+  sendResponse(res, 200, "success", "success", "Xóa khỏi danh sách yêu thích");
 });
 
 export const getUserFavouriteList = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
-  const result = await client.query("SELECT * FROM tbfavouritelist where userid = $1  LIMIT $1 OFFSET $2", [req.user.userid, size, offset]);
+  const result = await client.query(
+    `select t.id, t2.movieid, t2.name as moviename, t2.publisher, t2.publishyear, t2.type,
+        t3.episodeid, t3.episodenumber, t3.name as episodename, t.createddate 
+        from tbfavouritelist t 
+        join tbmovieinfo t2 on t.movieid = t2.movieid
+        join tbmovieepisode t3 on t.episodenumber = t3.episodenumber and t2.movieid = t3.movieid 
+        where t.userid = $1 LIMIT $2 OFFSET $3`,
+    [req.user.userid, size, offset]
+  );
 
-  sendResponse(res, 200, "success", "success", result);
+  const object = { "": result.row, size: size };
+
+  sendResponse(res, 200, "success", "success", object);
 });
 
 export const checkIfFavourite = errorHandler(async (req, res, next, client) => {
