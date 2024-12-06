@@ -26,9 +26,9 @@ export const episodeSchema = {
 };
 
 export const livestreamSchema = {
-  createLivestream_Params: ["roomname", "creator", "description", "ispremium", "path"],
-  editLivestream_Params: ["id,roomname", "description", "ispremium"],
-  endLivestream_Params: ["id", "roomname", "creator", "isstreaming"],
+  createLivestream_Params: ["roomname", "creator", "description", "ispremium"],
+  editLivestream_Params: ["id", "roomname", "description", "ispremium", "isstreaming", "path"],
+  getLiveStream_Params: ["id", "roomid"],
   increaseviewLivestream_Params: ["id", "view"],
 };
 

@@ -226,3 +226,7 @@ export function getQueryOffset(page) {
   page = parseInt(page) || 1;
   return (Number(page) - 1) * Number(process.env.PAGE_SIZE);
 }
+
+export function getTotalPages(total) {
+  return Math.ceil(Number(total) / getPageSize()) || 0;
+}

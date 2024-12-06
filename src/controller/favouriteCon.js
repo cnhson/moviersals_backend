@@ -10,6 +10,7 @@ import {
   preProcessingBodyParam,
   getQueryOffset,
   getPageSize,
+  getTotalPages,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { favouriteSchema } from "../schema/index.js";
@@ -43,16 +44,29 @@ export const getUserFavouriteList = errorHandler(async (req, res, next, client) 
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
   const result = await client.query(
-    `select t.id, t2.movieid, t2.name as moviename, t2.publisher, t2.publishyear, t2.type,
-        t3.episodeid, t3.episodenumber, t3.name as episodename, t.createddate 
-        from tbfavouritelist t 
-        join tbmovieinfo t2 on t.movieid = t2.movieid
-        join tbmovieepisode t3 on t.episodenumber = t3.episodenumber and t2.movieid = t3.movieid 
-        where t.userid = $1 LIMIT $2 OFFSET $3`,
+    `WITH base_data AS (
+      SELECT t.id, t2.movieid, t2.name AS moviename, t2.publisher, t2.publishyear, t2.type,
+            t3.episodeid, t3.episodenumber, t3.name AS episodename, t.createddate
+      FROM tbfavouritelist t
+      JOIN tbmovieinfo t2 ON t.movieid = t2.movieid
+      JOIN tbmovieepisode t3 ON t.episodenumber = t3.episodenumber AND t2.movieid = t3.movieid
+      WHERE t.userid = $1
+    ),
+    total AS (
+      SELECT COUNT(*) AS total_count FROM base_data
+    ),
+    data AS (
+      SELECT * FROM base_data
+      LIMIT $2 OFFSET $3
+    )
+    SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+    FROM data;
+    `,
     [req.user.userid, size, offset]
   );
 
-  const object = { "": result.row, size: size };
+  const totalPagges = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPagges };
 
   sendResponse(res, 200, "success", "success", object);
 });

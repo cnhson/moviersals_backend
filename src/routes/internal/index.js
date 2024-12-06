@@ -25,8 +25,8 @@ router.get("/movie/get/:movieid", movieCon.getMovieAllEpisodes_);
 
 // Livestream
 
-router.post("/livestream/create", multerType("thumbnail"), livestreamCon.createLivestream_);
-router.post("/livestream/edit", multerType("thumbnail"), livestreamCon.editLivestream_);
+router.post("/livestream/create", livestreamCon.createLivestream_);
+router.post("/livestream/edit", livestreamCon.editLivestream_);
 
 // Order
 router.get("/order/getAll", orderCon.getAllOrders_);

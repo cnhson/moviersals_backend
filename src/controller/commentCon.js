@@ -10,6 +10,7 @@ import {
   preProcessingBodyParam,
   getQueryOffset,
   getPageSize,
+  getTotalPages,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { commentSchema } from "../schema/index.js";
@@ -65,16 +66,28 @@ export const getAllComments = errorHandler(async (req, res, next, client) => {
   const userid = req.query.userid || "";
   const movieid = req.params.movieid;
   const result = await client.query(
-    `
-      SELECT t.*,t2.username, t2.displayname, t2.thumbnail 
-      FROM tbmoviecomment t
-      join tbuserinfo t2
-      on t.userid = t2.id::text 
-      where t.movieid = $4 and t.isactive = true
-      ORDER BY 
-      CASE WHEN userid = $1 THEN 0 ELSE 1 end
-      LIMIT $2 OFFSET $3 `,
+    `WITH base_data AS (
+        SELECT t.*,t2.username, t2.displayname, t2.thumbnail 
+            FROM tbmoviecomment t
+            join tbuserinfo t2
+            on t.userid = t2.id::text 
+            where t.movieid = $4 and t.isactive = true
+            ORDER BY 
+            CASE WHEN userid = $1 THEN 0 ELSE 1 end
+      ),
+      total AS (
+        SELECT COUNT(*) AS total_count FROM base_data
+      ),
+      data AS (
+        SELECT * FROM base_data
+        LIMIT $2 OFFSET $3 
+      )
+      SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+      FROM data;`,
     [userid, size, offset, movieid]
   );
-  sendResponse(res, 200, "success", "success", result.rows);
+
+  const totalPagges = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPagges };
+  sendResponse(res, 200, "success", "success", object);
 });

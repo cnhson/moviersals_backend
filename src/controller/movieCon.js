@@ -9,6 +9,7 @@ import {
   getQueryOffset,
   getPageSize,
   getDatetimeNow,
+  getTotalPages,
 } from "../util/index.js";
 import { replaceCLoudImage, uploadCloudImage } from "../services/cloudinary.js";
 import { movieSchema } from "../schema/index.js";
@@ -24,15 +25,28 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
   const size = getPageSize();
 
   const result = await client.query(
-    `SELECT t.*, AVG(t2.rating) AS avgrating
-    FROM tbmovieinfo t
-    full join tbmoviecomment t2 ON t.movieid = t2.movieid
-    GROUP BY t.id
-    LIMIT $1 OFFSET $2`,
+    `WITH base_data AS (
+      SELECT t.*, AVG(t2.rating) AS avgrating
+        FROM tbmovieinfo t
+        full join tbmoviecomment t2 ON t.movieid = t2.movieid
+        GROUP BY t.id
+    ),
+    total AS (
+      SELECT COUNT(*) AS total_count FROM base_data
+    ),
+    data AS (
+      SELECT * FROM base_data
+      LIMIT $1 OFFSET $2
+    )
+    SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+    FROM data;`,
     [size, offset]
   );
-  const movieList = result.rows;
-  sendResponse(res, 200, "success", "success", movieList);
+
+  const totalPagges = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPagges };
+
+  sendResponse(res, 200, "success", "success", object);
 });
 
 export const getMovieDetail = errorHandler(async (req, res, next, client) => {
@@ -152,5 +166,10 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
 export const getMovieAllEpisodes_ = errorHandler(async (req, res, next, client) => {
   const movieid = req.params.movieid;
   const result = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1", [movieid]);
+  sendResponse(res, 200, "success", result.rows);
+});
+
+export const getCategories = errorHandler(async (req, res, next, client) => {
+  const result = await client.query("SELECT * FROM tbmoviecategories");
   sendResponse(res, 200, "success", result.rows);
 });

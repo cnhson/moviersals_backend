@@ -28,4 +28,7 @@ router.get("/subcription/getAll", subcriptionCon.getAllSubcriptionPlan);
 // VNpay redirect
 router.get("/vnpay/ipn", orderCon.hanldeVNPayIPN);
 
+// Categories
+router.get("/movie/getCategories", movieCon.getCategories);
+
 export default router;

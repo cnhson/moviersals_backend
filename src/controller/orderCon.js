@@ -18,6 +18,7 @@ import {
   getQueryOffset,
   getPageSize,
   errorHandlerTransactionPlain,
+  getTotalPages,
 } from "../util/index.js";
 import { orderSchema } from "../schema/index.js";
 
@@ -79,12 +80,26 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
 export const getOrderHistory = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
-  const result = await client.query("SELECT * FROM tborderhistory WHERE userid = $1 order by createddate LIMIT $2 OFFSET $3", [
-    req.user.userid,
-    size,
-    offset,
-  ]);
-  return sendResponse(res, 200, "success", "success", result.rows);
+  const result = await client.query(
+    `WITH base_data AS (
+        SELECT * FROM tborderhistory WHERE userid = $1 order by createddate
+        ),
+        total AS (
+          SELECT COUNT(*) AS total_count FROM base_data
+        ),
+        data AS (
+          SELECT * FROM base_data
+          LIMIT $2 OFFSET $3
+        )
+        SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+        FROM data;
+        `,
+    [req.user.userid, size, offset]
+  );
+  const totalPages = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPages };
+
+  return sendResponse(res, 200, "success", "success", object);
 });
 
 export const createVNPayTransaction = errorHandlerTransaction(async (req, res, next, client) => {

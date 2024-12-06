@@ -6,6 +6,7 @@ import * as orderCon from "../../controller/orderCon.js";
 import * as movieCon from "../../controller/movieCon.js";
 import * as commentCon from "../../controller/commentCon.js";
 import * as favouriteCon from "../../controller/favouriteCon.js";
+import * as livestreamCon from "../../controller/livestreamCon.js";
 
 const router = Router();
 
@@ -39,5 +40,9 @@ router.post("/comment/delete", commentCon.removeComment);
 router.get("/favourite/get", favouriteCon.getUserFavouriteList);
 router.post("/favourite/add", favouriteCon.addFavouriteEpisode);
 router.post("/favourite/delete", favouriteCon.removeFavouriteEpisode);
+
+// Livestream
+router.get("/livestream/getAll", livestreamCon.getAllLivestream);
+router.post("/livestream/get", livestreamCon.getLivestream);
 
 export default router;
