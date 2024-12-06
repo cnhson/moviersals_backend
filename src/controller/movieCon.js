@@ -99,7 +99,7 @@ export const uploadImage_ = errorHandler(async (req, res, next, client) => {
     return sendResponse(res, 200, "fail", "No file uploaded");
   }
   const imageUrl = await uploadCloudImage(req.file);
-  sendResponse(res, 200, "success", imageUrl);
+  sendResponse(res, 200, "success", "success", imageUrl);
 });
 
 export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
@@ -123,7 +123,7 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
       movieid,
     ]
   );
-  sendResponse(res, 200, "success", "Movie uploaded successfully");
+  sendResponse(res, 200, "success", "success", "Movie uploaded successfully");
 });
 
 export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, client) => {
@@ -148,28 +148,28 @@ export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, cli
       params.movieid,
     ]
   );
-  sendResponse(res, 200, "success", "Movie uploaded successfully");
+  sendResponse(res, 200, "success", "success", "Movie uploaded successfully");
 });
 
 export const deleteMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.deleteMovieInfo_Params);
   await client.query("DELETE FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
-  sendResponse(res, 200, "success", "Movie deleted successfully");
+  sendResponse(res, 200, "success", "success", "Movie deleted successfully");
 });
 
 export const categoriesFilter = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.categoriesFilter);
   const result = await client.query("SELECT * FROM tbmovieinfo t where t.categories::jsonb @> $1", [params.categories]);
-  sendResponse(res, 200, "success", result.rows);
+  sendResponse(res, 200, "success", "success", result.rows);
 });
 
 export const getMovieAllEpisodes_ = errorHandler(async (req, res, next, client) => {
   const movieid = req.params.movieid;
   const result = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1", [movieid]);
-  sendResponse(res, 200, "success", result.rows);
+  sendResponse(res, 200, "success", "success", result.rows);
 });
 
 export const getCategories = errorHandler(async (req, res, next, client) => {
-  const result = await client.query("SELECT * FROM tbmoviecategories");
-  sendResponse(res, 200, "success", result.rows);
+  const result = await client.query("SELECT * FROM tbcategoriesinfo");
+  sendResponse(res, 200, "success", "success", result.rows);
 });
