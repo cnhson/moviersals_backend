@@ -15,6 +15,7 @@ import {
   getInputExtendDatetime,
   getQueryOffset,
   getPageSize,
+  getTotalPages,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -292,10 +293,25 @@ export const getAllUser_ = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
   const result = await client.query(
-    "SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin' LIMIT $1 OFFSET $2",
+    `WITH base_data AS (
+       SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,isverified,isactive FROM tbuserinfo WHERE role != 'admin'
+      ),
+      total AS (
+        SELECT COUNT(*) AS total_count FROM base_data
+      ),
+      data AS (
+        SELECT * FROM base_data
+        LIMIT $1 OFFSET $2
+      )
+      SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+      FROM data;`,
     [size, offset]
   );
-  return sendResponse(res, 200, "success", "success", result.rows);
+
+  const totalPagges = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPagges };
+
+  return sendResponse(res, 200, "success", "success", object);
 });
 
 export const checkAuthenciation = errorHandler(async (req, res, next, client) => {

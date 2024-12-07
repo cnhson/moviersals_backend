@@ -1,11 +1,27 @@
 import { subcriptionSchema } from "../schema/index.js";
-import { errorHandler, getPageSize, getQueryOffset, preProcessingBodyParam, sendResponse } from "../util/index.js";
+import { errorHandler, getPageSize, getQueryOffset, getTotalPages, preProcessingBodyParam, sendResponse } from "../util/index.js";
 
 export const getAllSubcriptionPlan = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(req.query.page);
   const size = getPageSize();
-  const result = await client.query("SELECT * FROM tbsubcriptionplaninfo order by id LIMIT $1 OFFSET $2 ", [size, offset]);
-  sendResponse(res, 200, "success", "success", result.rows);
+  const result = await client.query(
+    `WITH base_data AS (
+       SELECT * FROM tbsubcriptionplaninfo order by id
+      ),
+      total AS (
+        SELECT COUNT(*) AS total_count FROM base_data
+      ),
+      data AS (
+        SELECT * FROM base_data
+        LIMIT $1 OFFSET $2
+      )
+      SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+      FROM data;`,
+    [size, offset]
+  );
+  const totalPagges = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPagges };
+  sendResponse(res, 200, "success", "success", object);
 });
 
 export const createSubcriptionPlan_ = errorHandler(async (req, res, next, client) => {
