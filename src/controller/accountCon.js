@@ -81,10 +81,18 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.loginAccountParams);
   const requestip = getReqIpAddress(req);
   const activecheck = await client.query('select "isactive" = false as check from tbuserinfo t where t.username = $1', [params.username]);
-  if (activecheck.rows[0].check) return sendResponse(res, 200, "success", "error", "Account is locked");
+  if (activecheck.rows[0].check)
+    return sendResponse(
+      res,
+      403,
+      "success",
+      "error",
+      "Tài khoản đã bị khóa, hãy liên hệ với email của website để giải quyết",
+      "error_disable_account"
+    );
   const result = await client.query("SELECT * FROM tbuserinfo WHERE username = $1", [params.username]);
   if (result.rowCount == 0) {
-    return sendResponse(res, 200, "success", "error", "Account not exist");
+    return sendResponse(res, 200, "success", "error", "Tài khoản không tồn tại");
   }
   const user = result.rows[0];
   if (bcrypt.compareSync(params.password, user.password)) {
@@ -147,9 +155,9 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
       "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where userid = $1",
       [user.id, ipaddressArray, loginDate, refreshToken, expireDate]
     );
-    return sendResponse(res, 200, "success", "success", "Login successfully");
+    return sendResponse(res, 200, "success", "success", "Đăng nhập thành công");
   } else {
-    return sendResponse(res, 200, "success", "error", "Incorrect password");
+    return sendResponse(res, 200, "success", "error", "Mật khẩu không chính xác");
   }
 });
 
@@ -161,12 +169,12 @@ export const changePassword = errorHandler(async (req, res, next, client) => {
   if (result) {
     let checkPassword = bcrypt.compareSync(params.oldpassword, result.rows[0].password);
     if (!checkPassword) {
-      sendResponse(res, 200, "success", "error", "Current password is incorrect");
+      sendResponse(res, 200, "success", "error", "Mật khẩu hiện tại chưa chính xác");
     } else {
       let newHashedPassword = await bcrypt.hash(params.newpassword, 10);
       const updateResult = await client.query("UPDATE tbuserinfo SET password = $2 where id = $1", [userid, newHashedPassword]);
       if (updateResult.rowCount > 0) {
-        sendResponse(res, 200, "success", "success", "Change password successfully");
+        sendResponse(res, 200, "success", "success", "Đổi mật khẩu thành công");
       }
     }
   }
@@ -178,7 +186,7 @@ export const createEmailVerification = errorHandlerTransaction(async (req, res, 
   const result = await client.query("SELECT * FROM tbemailverification where userid = $1", [userid]);
   const tokenexpiredate = getConvertedDatetime(result.rows[0].expiredate);
   if (getDatetimeNow().isSameOrBefore(tokenexpiredate))
-    return sendResponse(res, 200, "success", "error", "Email verification token can only be requested once every 5 minutes");
+    return sendResponse(res, 200, "success", "error", "Token chỉ có thể tạo mới mỗi 5 phút 1 lần");
 
   const emailToken = generateRandomString(12);
   const expireDate = getExtendDatetime(0, 0, 5);
@@ -196,7 +204,7 @@ export const createEmailVerification = errorHandlerTransaction(async (req, res, 
     "Email verification",
     `Your email verification token is ${emailToken}, it will expire in 5 minutes at ${expireDate}!`
   );
-  sendResponse(res, 200, "success", "success", "Check your email for verification token");
+  sendResponse(res, 200, "success", "success", "Hãy kiểm tra email để lấy token xác minh");
 });
 
 export const verifyEmail = errorHandler(async (req, res, next, client) => {
@@ -216,9 +224,9 @@ export const verifyEmail = errorHandler(async (req, res, next, client) => {
           userid,
           params.email,
         ]);
-        return sendResponse(res, 200, "success", "success", "Email verification successfully");
+        return sendResponse(res, 200, "success", "success", "Xác minh email thành công");
       }
-    } else return sendResponse(res, 200, "success", "error", "Email verification expired, please request a new one again");
+    } else return sendResponse(res, 200, "success", "error", "Token đã hết hạn, xin vui lòng tạo mới");
   }
 });
 
@@ -256,7 +264,6 @@ export const checkResetPasswordToken = errorHandler(async (req, res, next, clien
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
   const result = await client.query("SELECT expiredate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result.rowCount > 0) {
-    const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expiredate;
     if (getDatetimeNow().isSameOrBefore(exireddate)) {
       return sendResponse(res, 200, "success", "success", "Exist password reset token");
@@ -310,4 +317,17 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
     [req.user.userid]
   );
   return sendResponse(res, 200, "success", "success", result.rows[0]);
+});
+
+export const changeAccountState = errorHandler(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, accountSchema.changeAccountActiveState_Params);
+  let stringMsg = "Vô hiệu";
+  if (params.isactive == true) stringMsg = "Mở khóa";
+  await client.query("UPDATE tbuserinfo set isactive = $3 where id = $1 and username = $2", [
+    params.userid,
+    params.username,
+    params.isactive,
+  ]);
+
+  return sendResponse(res, 200, "success", "success", stringMsg + " tài khoản thành công");
 });

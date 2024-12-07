@@ -11,6 +11,7 @@ const router = Router();
 
 // Account
 router.get("/account/getAllUser", accountCon.getAllUser_);
+router.post("/account/updateState", accountCon.changeAccountState);
 
 // Episode
 router.post("/episode/upload", episodeCon.uploadEpisode_);

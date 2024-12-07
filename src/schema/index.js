@@ -8,6 +8,7 @@ export const accountSchema = {
   createResetPasswordToken: ["email"],
   checkResetPasswordToken: ["passwordtoken"],
   verifyResetPassword: ["newpassword", "passwordtoken"],
+  changeAccountActiveState_Params: ["id", "username", "isactive"],
 };
 
 export const movieSchema = {

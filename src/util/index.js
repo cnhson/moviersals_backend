@@ -64,8 +64,13 @@ export function preProcessingUrlParam(req) {
   return req.params;
 }
 
-export function sendResponse(res, statusCode, statusMessage, result, content) {
-  res.status(statusCode).json({ result: result, status: statusMessage, content: content });
+export function sendResponse(res, statusCode, statusMessage, result, content, codeMessage = undefined) {
+  res.status(statusCode).json({
+    result: result,
+    status: statusMessage,
+    content: content,
+    code: codeMessage,
+  });
 }
 
 export function getStringDatetimeNow() {
