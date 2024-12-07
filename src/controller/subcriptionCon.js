@@ -11,8 +11,17 @@ export const getAllSubcriptionPlan = errorHandler(async (req, res, next, client)
 export const createSubcriptionPlan_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, subcriptionSchema.createSubcription_Params);
   await client.query(
-    "INSERT INTO tbsubcriptionplaninfo (subcriptionid, name, price, daysduration, baseprice, priority, quality) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [params.subcriptionid, params.name, params.price, params.daysduration, params.baseprice, params.priority, params.quality]
+    "INSERT INTO tbsubcriptionplaninfo (subcriptionid, name, price, daysduration, baseprice, priority, quality, connection) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    [
+      params.subcriptionid,
+      params.name,
+      params.price,
+      params.daysduration,
+      params.baseprice,
+      params.priority,
+      params.quality,
+      params.connection,
+    ]
   );
   sendResponse(res, 200, "success", "success", "Create subcription plan successfully");
 });
@@ -21,8 +30,17 @@ export const editSubcriptionPlan_ = errorHandler(async (req, res, next, client) 
   const params = preProcessingBodyParam(req, subcriptionSchema.editSubcription_Params);
 
   await client.query(
-    "UPDATE tbsubcriptionplaninfo set name = $2, price = $3, daysduration = $4, baseprice = $5, priority = $6, quality = $7, isads = $8 where subcriptionid = $1",
-    [params.subcriptionid, params.name, params.price, params.daysduration, params.baseprice, params.priority, params.quality, params.isads]
+    "UPDATE tbsubcriptionplaninfo set name = $2, price = $3, daysduration = $4, baseprice = $5, priority = $6, quality = $7, connection = $8,isads = false where subcriptionid = $1",
+    [
+      params.subcriptionid,
+      params.name,
+      params.price,
+      params.daysduration,
+      params.baseprice,
+      params.priority,
+      params.quality,
+      params.connection,
+    ]
   );
   sendResponse(res, 200, "success", "success", "Edit subcription plan successfully");
 });

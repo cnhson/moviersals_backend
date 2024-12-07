@@ -29,7 +29,6 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
     "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role, ispremium, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
     [params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role, false, createddate]
   );
-  console.log(result.rows[0].id);
   const userid = result.rows[0].id;
   await client.query("INSERT INTO tbloginhistory (userid) VALUES ($1)", [userid]);
   await client.query("INSERT INTO tbpasswordreset (userid, email) VALUES ($1, $2)", [userid, params.email]);

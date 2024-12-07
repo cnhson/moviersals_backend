@@ -16,7 +16,6 @@ import { movieSchema } from "../schema/index.js";
 
 export const testUploadImage_ = errorHandler(async (req, res, next, client) => {
   const imageUrl = await uploadCloudImage(req.file);
-  console.log("Here");
   sendResponse(res, 200, "success", "success", imageUrl);
 });
 
