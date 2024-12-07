@@ -29,7 +29,7 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
         SELECT 
             t.*, 
             AVG(t2.rating) AS avgrating,
-            JSON_AGG(DISTINCT tc.namevi) AS categoriesvi
+            JSON_AGG(DISTINCT tc.namevi)::text AS categoriesvi
         FROM 
             tbmovieinfo t
         FULL JOIN 
@@ -70,7 +70,7 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
         END AS isfavourite
         FROM tbmovieepisode t
         LEFT JOIN tbfavouritelist t2 
-            ON t.movieid = t2.movieid 
+            ON t.movieid = t2.movieid and t.episodenumber = t2.episodenumber 
             AND t2.userid = $1
         WHERE t.movieid = $2
         ORDER BY t.episodenumber ASC;`,

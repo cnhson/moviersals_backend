@@ -134,7 +134,7 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   let tmnCode = process.env.VNPAY_TERMINAL_CODE;
   let secretKey = process.env.VNPAY_SECREY_KEY;
   let vnpUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-  let returnUrl = process.env.FRONTEND_URL + "invoice/vnpay";
+  let returnUrl = process.env.FRONTEND_URL + "/invoice/vnpay";
 
   let orderId = "VNPAY_" + generateRandomString(20);
   let orderdescription =
