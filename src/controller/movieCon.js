@@ -26,10 +26,20 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
 
   const result = await client.query(
     `WITH base_data AS (
-      SELECT t.*, AVG(t2.rating) AS avgrating
-        FROM tbmovieinfo t
-        full join tbmoviecomment t2 ON t.movieid = t2.movieid
-        GROUP BY t.id
+        SELECT 
+            t.*, 
+            AVG(t2.rating) AS avgrating,
+            JSON_AGG(DISTINCT tc.namevi) AS categoriesvi
+        FROM 
+            tbmovieinfo t
+        FULL JOIN 
+            tbmoviecomment t2 ON t.movieid = t2.movieid
+        LEFT JOIN LATERAL 
+            JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
+        LEFT JOIN 
+            tbcategoriesinfo tc ON category_name = tc.name
+        GROUP BY 
+            t.id
     ),
     total AS (
       SELECT COUNT(*) AS total_count FROM base_data
