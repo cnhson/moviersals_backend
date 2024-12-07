@@ -77,10 +77,16 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
     [userid, movieid]
   );
   const result = await client.query(
-    ` SELECT t.*, SUM(t2.view) as view FROM tbmovieinfo t  
-    join tbmovieepisode t2 on t.movieid = t2.movieid
-    where t.movieid = $1
-    group by t.id`,
+    `SELECT t.*, SUM(t2.view) as view,    
+      JSON_AGG(DISTINCT tc.namevi)::text AS categoriesvi
+      FROM tbmovieinfo t  
+          join tbmovieepisode t2 on t.movieid = t2.movieid
+      LEFT JOIN LATERAL 
+          JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
+      LEFT JOIN 
+          tbcategoriesinfo tc ON category_name = tc.name
+          where t.movieid = $1
+          group by t.id;`,
     [movieid]
   );
   const movieDetail = result.rows[0];
