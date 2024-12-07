@@ -32,8 +32,8 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   console.log(result.rows[0].id);
   const userid = result.rows[0].id;
   await client.query("INSERT INTO tbloginhistory (userid) VALUES ($1)", [userid]);
-  await client.query("INSERT INTO tbpasswordreset (userid, email) VALUES ($1)", [userid, params.email]);
-  await client.query("INSERT INTO tbemailverification (userid, email) VALUES ($1)", [userid, params.email]);
+  await client.query("INSERT INTO tbpasswordreset (userid, email) VALUES ($1, $2)", [userid, params.email]);
+  await client.query("INSERT INTO tbemailverification (userid, email) VALUES ($1, $2)", [userid, params.email]);
   await client.query("INSERT INTO tbusersubscription (userid, subcriptionid) VALUES ($1,'FREE')", [userid]);
   await client.query("INSERT INTO tbfavouritelist (userid) VALUES ($1)", [userid]);
 
