@@ -39,7 +39,7 @@ export const createSubcriptionPlan_ = errorHandler(async (req, res, next, client
       params.connection,
     ]
   );
-  sendResponse(res, 200, "success", "success", "Create subcription plan successfully");
+  sendResponse(res, 200, "success", "success", "Tạo vé thành công");
 });
 
 export const editSubcriptionPlan_ = errorHandler(async (req, res, next, client) => {
@@ -58,5 +58,12 @@ export const editSubcriptionPlan_ = errorHandler(async (req, res, next, client) 
       params.connection,
     ]
   );
-  sendResponse(res, 200, "success", "success", "Edit subcription plan successfully");
+  sendResponse(res, 200, "success", "success", "Chỉnh sửa vé thành công");
+});
+
+export const deleteSubcriptionPlan_ = errorHandler(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, subcriptionSchema.deleteSubcription_Params);
+
+  await client.query("Delete from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
+  sendResponse(res, 200, "success", "success", "Xóa vé thành công");
 });

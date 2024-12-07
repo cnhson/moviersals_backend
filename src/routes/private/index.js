@@ -23,6 +23,9 @@ router.post("/account/verifyEmail", accountCon.verifyEmail);
 router.get("/movie/watch/:movieid/:episodeid", movieCon.getMovieEpisode);
 router.post("/episode/increaseview", episodeCon.increaseEpisodeView);
 
+// Movie
+router.post("/movie/filter", movieCon.categoriesFilter);
+
 // Paypal
 router.post("/order/create/paypal", orderCon.createPaypalOrder);
 router.post("/order/getDetail", orderCon.getOrderPaymentDetail);

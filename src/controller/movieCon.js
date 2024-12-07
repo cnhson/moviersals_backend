@@ -122,6 +122,10 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
   if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
   const imageUrl = await uploadCloudImage(req.file);
   const createdDateTime = getStringDatetimeNow();
+
+  if (params.categories.startsWith('["') && params.categories.endsWith('"]')) {
+    params.categories = params.categories.replace(/\\"/g, '"');
+  }
   const movieid = convertToPlainText(params.name);
   await client.query(
     "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, createddate, movieid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
@@ -173,9 +177,54 @@ export const deleteMovieInfo_ = errorHandler(async (req, res, next, client) => {
 });
 
 export const categoriesFilter = errorHandler(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, movieSchema.categoriesFilter);
-  const result = await client.query("SELECT * FROM tbmovieinfo t where t.categories::jsonb @> $1", [params.categories]);
-  sendResponse(res, 200, "success", "success", result.rows);
+  const moviename = req.body.moviename || null;
+  let categories = req.body.categories || null;
+
+  if (categories.startsWith('["') && categories.endsWith('"]')) {
+    categories = categories.replace(/\\"/g, '"');
+  }
+
+  const year = req.body.year || null;
+  const page = Number(req.body.page) || 1;
+  const size = getPageSize();
+  const offset = getQueryOffset(page);
+
+  const result = await client.query(
+    `WITH base_data AS (
+      SELECT 
+          t.* 
+      FROM 
+          tbmovieinfo t
+      WHERE
+          ($3::text IS NULL OR t.name LIKE $3)
+          AND
+          ($4::text IS NULL OR t.publishyear = $4)
+          AND
+          ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
+    ),
+    total AS (
+      SELECT COUNT(*) AS total_count FROM base_data
+    ),
+    data AS (
+      SELECT * FROM base_data
+      LIMIT $1 OFFSET $2
+    )
+    SELECT 
+        (SELECT total_count FROM total) AS total_count, 
+        json_agg(data) AS rows
+    FROM data;`,
+    [
+      size,
+      offset,
+      moviename ? `%${moviename}%` : null, // Ensure moviename is treated as LIKE search or NULL
+      year ? year : null, // Ensure year is either the value or NULL
+      categories, // Handle categories as JSON
+    ]
+  );
+
+  const totalPages = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPages };
+  sendResponse(res, 200, "success", "success", object);
 });
 
 export const getMovieAllEpisodes_ = errorHandler(async (req, res, next, client) => {

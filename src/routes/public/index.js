@@ -17,7 +17,6 @@ router.post("/confirmResetPassword", accountCon.verifyResetPassword);
 // Movie
 router.get("/movie/getAll", movieCon.getMovieList);
 router.get("/movie/detail/:movieid", movieCon.getMovieDetail);
-router.post("/movie/filter", movieCon.categoriesFilter);
 
 // Comment
 router.get("/comment/getAll/:movieid", commentCon.getAllComments);

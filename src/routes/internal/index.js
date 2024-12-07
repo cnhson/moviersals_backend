@@ -35,5 +35,6 @@ router.get("/order/getAll", orderCon.getAllOrders_);
 // Subcription
 router.post("/subcription/create", subcriptionCon.createSubcriptionPlan_);
 router.post("/subcription/edit", subcriptionCon.editSubcriptionPlan_);
+router.post("/subcription/delete", subcriptionCon.deleteSubcriptionPlan_);
 
 export default router;

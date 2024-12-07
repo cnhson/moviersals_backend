@@ -43,7 +43,8 @@ export const orderSchema = {
 export const subcriptionSchema = {
   getSubcriptionDetailParams: ["subcriptionid"],
   createSubcription_Params: ["subcriptionid", "name", "price", "daysduration", "baseprice", "priority", "quality", "connection"],
-  editSubcription_Params: ["subcriptionid", "name", "price", "daysduration", "baseprice", "priority", "quality", "connection", "isads"],
+  editSubcription_Params: ["subcriptionid", "name", "price", "daysduration", "baseprice", "priority", "quality", "connection"],
+  deleteSubcription_Params: ["subcriptionid"],
 };
 
 export const commentSchema = {
