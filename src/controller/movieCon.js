@@ -180,9 +180,9 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
   const moviename = req.body.moviename || null;
   let categories = req.body.categories || null;
 
-  if (categories.startsWith('["') && categories.endsWith('"]')) {
+  if (categories.includes('"')) {
     categories = categories.replace(/\\"/g, '"');
-  }
+  } else categories = null;
 
   const year = req.body.year || null;
   const page = Number(req.body.page) || 1;
