@@ -1,8 +1,6 @@
 import {
-  generateRandomString,
   sendResponse,
   getStringDatetimeNow,
-  getExtendDatetime,
   errorHandlerTransaction,
   errorHandler,
   preProcessingBodyParam,
@@ -18,7 +16,7 @@ export const uploadEpisode_ = errorHandler(async (req, res, next, client) => {
     "INSERT INTO tbmovieepisode (movieid, episodeid, name, episodenumber,episodepath, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
     [params.movieid, episodeid, params.name, params.episodenumber, params.episodepath, createdDateTime]
   );
-  return sendResponse(res, 200, "success", "success", "Upload movie's episode successfully");
+  return sendResponse(res, 200, "success", "success", "Upload tập phim thành công");
 });
 
 export const editEpisode_ = errorHandler(async (req, res, next, client) => {
@@ -28,7 +26,17 @@ export const editEpisode_ = errorHandler(async (req, res, next, client) => {
     params.episodepath,
     params.episodenumber,
   ]);
-  return sendResponse(res, 200, "success", "success", "Edit movie's episode successfully");
+  return sendResponse(res, 200, "success", "success", "Sửa tập phim thành công");
+});
+
+export const deleteEpisode_ = errorHandler(async (req, res, next, client) => {
+  const params = preProcessingBodyParam(req, episodeSchema.editEpisode_Params);
+  await client.query("DELETE from tbmovieepisode where movieid = $1 and episodeid = $2 and episodenumber = $3", [
+    params.movieid,
+    params.episodeid,
+    params.episodenumber,
+  ]);
+  return sendResponse(res, 200, "success", "success", "Xóa tập phim thành công");
 });
 
 export const increaseEpisodeView = errorHandlerTransaction(async (req, res, next, client) => {
@@ -53,6 +61,6 @@ export const increaseEpisodeView = errorHandlerTransaction(async (req, res, next
         createddate,
       ]);
     }
-    sendResponse(res, 200, "success", "success", "Done");
-  } else sendResponse(res, 200, "success", "error", "Episode not exist");
+    sendResponse(res, 200, "success", "success", "Đã tăng lượt xem cho tập phim");
+  } else sendResponse(res, 200, "success", "error", "Tập phim không tồn tại");
 });

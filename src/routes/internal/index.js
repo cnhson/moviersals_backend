@@ -17,6 +17,7 @@ router.post("/account/updateState", accountCon.changeAccountState);
 // Episode
 router.post("/episode/upload", episodeCon.uploadEpisode_);
 router.post("/episode/edit", episodeCon.editEpisode_);
+router.post("/episode/delete", episodeCon.deleteEpisode_);
 
 // Movie
 router.post("/movie/testupload", multerType("thumbnail"), movieCon.testUploadImage_);
