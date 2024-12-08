@@ -338,11 +338,8 @@ export const changeAccountState = errorHandler(async (req, res, next, client) =>
   const params = preProcessingBodyParam(req, accountSchema.changeAccountActiveState_Params);
   let stringMsg = "Vô hiệu";
   if (params.isactive == true) stringMsg = "Mở khóa";
-  await client.query("UPDATE tbuserinfo set isactive = $3 where id = $1 and username = $2", [
-    params.userid,
-    params.username,
-    params.isactive,
-  ]);
+
+  await client.query("UPDATE tbuserinfo set isactive = $3 where id = $1 and username = $2", [params.id, params.username, params.isactive]);
 
   return sendResponse(res, 200, "success", "success", stringMsg + " tài khoản thành công");
 });

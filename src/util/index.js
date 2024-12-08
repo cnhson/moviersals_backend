@@ -36,7 +36,7 @@ function buildParams(fields) {
 function validateFields(fields) {
   let missingKey = [];
   for (const [key, value] of Object.entries(fields)) {
-    if (value == null || value == "" || value == undefined) {
+    if (value === null || value === "" || value === undefined) {
       missingKey.push(key);
     }
   }
@@ -55,6 +55,7 @@ export function preProcessingBodyParam(req, schema) {
       return obj;
     }, {});
   Object.assign(processingParams, filteredBody);
+  console.log(processingParams);
   validateFields(processingParams);
   return processingParams;
 }

@@ -111,7 +111,7 @@ export const getMovieEpisode = errorHandler(async (req, res, next, client) => {
 
 export const uploadImage_ = errorHandler(async (req, res, next, client) => {
   if (!req.file) {
-    return sendResponse(res, 200, "fail", "No file uploaded");
+    return sendResponse(res, 200, "fail", "Không tìm thấy file hình ảnh");
   }
   const imageUrl = await uploadCloudImage(req.file);
   sendResponse(res, 200, "success", "success", imageUrl);
@@ -119,7 +119,7 @@ export const uploadImage_ = errorHandler(async (req, res, next, client) => {
 
 export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.createMovieInfo_Params);
-  if (!req.file) return sendResponse(res, 200, "fail", "No file uploaded");
+  if (!req.file) return sendResponse(res, 200, "fail", "Không tìm thấy file hình ảnh");
   const imageUrl = await uploadCloudImage(req.file);
   const createdDateTime = getStringDatetimeNow();
 
@@ -142,7 +142,7 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
       movieid,
     ]
   );
-  sendResponse(res, 200, "success", "success", "Movie uploaded successfully");
+  sendResponse(res, 200, "success", "success", "Upload phim thành công");
 });
 
 export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, client) => {
@@ -167,13 +167,13 @@ export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, cli
       params.movieid,
     ]
   );
-  sendResponse(res, 200, "success", "success", "Movie uploaded successfully");
+  sendResponse(res, 200, "success", "success", "Chỉnh sửa phim thành công");
 });
 
 export const deleteMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.deleteMovieInfo_Params);
   await client.query("DELETE FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
-  sendResponse(res, 200, "success", "success", "Movie deleted successfully");
+  sendResponse(res, 200, "success", "success", "Xóa phim thành công");
 });
 
 export const categoriesFilter = errorHandler(async (req, res, next, client) => {
