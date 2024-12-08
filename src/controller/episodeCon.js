@@ -30,7 +30,7 @@ export const editEpisode_ = errorHandler(async (req, res, next, client) => {
 });
 
 export const deleteEpisode_ = errorHandler(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, episodeSchema.editEpisode_Params);
+  const params = preProcessingBodyParam(req, episodeSchema.deleteEpisode_Params);
   await client.query("DELETE from tbmovieepisode where movieid = $1 and episodeid = $2 and episodenumber = $3", [
     params.movieid,
     params.episodeid,
