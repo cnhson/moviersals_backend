@@ -6,6 +6,7 @@ import * as episodeCon from "../../controller/episodeCon.js";
 import * as livestreamCon from "../../controller/livestreamCon.js";
 import * as orderCon from "../../controller/orderCon.js";
 import * as subcriptionCon from "../../controller/subcriptionCon.js";
+import * as categorieCon from "../../controller/categorieCon.js";
 
 const router = Router();
 
@@ -36,5 +37,10 @@ router.get("/order/getAll", orderCon.getAllOrders_);
 router.post("/subcription/create", subcriptionCon.createSubcriptionPlan_);
 router.post("/subcription/edit", subcriptionCon.editSubcriptionPlan_);
 router.post("/subcription/delete", subcriptionCon.deleteSubcriptionPlan_);
+
+// Categories
+router.post("/categorie/create", categorieCon.createCategories_);
+router.post("/categorie/edit", categorieCon.editCategories_);
+router.post("/categorie/delete", categorieCon.deleteCategories_);
 
 export default router;

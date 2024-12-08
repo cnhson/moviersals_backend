@@ -4,6 +4,7 @@ import * as movieCon from "../../controller/movieCon.js";
 import * as subcriptionCon from "../../controller/subcriptionCon.js";
 import * as orderCon from "../../controller/orderCon.js";
 import * as commentCon from "../../controller/commentCon.js";
+import * as categorieCon from "../../controller/categorieCon.js";
 
 const router = Router();
 
@@ -28,6 +29,6 @@ router.get("/subcription/getAll", subcriptionCon.getAllSubcriptionPlan);
 router.get("/vnpay/ipn", orderCon.hanldeVNPayIPN);
 
 // Categories
-router.get("/movie/getCategories", movieCon.getCategories);
+router.get("/categorie/getAll", categorieCon.getAllCategories);
 
 export default router;

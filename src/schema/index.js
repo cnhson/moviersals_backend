@@ -58,3 +58,9 @@ export const favouriteSchema = {
   checkFavouriteEpisodeParams: ["movieid", "episodenumber"],
   deleteFavouriteEpisodeCommentParams: ["movieid", "episodenumber"],
 };
+
+export const categorieSchema = {
+  createCategorie_Params: ["name", "namevi"],
+  editCategorie_Params: ["id", "name", "namevi"],
+  deleteCategories_Params: ["id", "name"],
+};

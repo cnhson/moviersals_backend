@@ -6,8 +6,6 @@ export function multerType(inputType, required = true) {
     const storage = multer.memoryStorage(); // Store files in memory
     const upload = multer({ storage: storage });
 
-    // console.log("before:", req.body);
-
     upload.single(inputType)(req, res, (err) => {
       if (err instanceof multer.MulterError) {
         if (err.code === "LIMIT_UNEXPECTED_FILE") {

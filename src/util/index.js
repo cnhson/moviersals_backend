@@ -55,7 +55,6 @@ export function preProcessingBodyParam(req, schema) {
       return obj;
     }, {});
   Object.assign(processingParams, filteredBody);
-  console.log(processingParams);
   validateFields(processingParams);
   return processingParams;
 }

@@ -232,8 +232,3 @@ export const getMovieAllEpisodes_ = errorHandler(async (req, res, next, client) 
   const result = await client.query("SELECT * FROM tbmovieepisode t where t.movieid = $1", [movieid]);
   sendResponse(res, 200, "success", "success", result.rows);
 });
-
-export const getCategories = errorHandler(async (req, res, next, client) => {
-  const result = await client.query("SELECT * FROM tbcategoriesinfo");
-  sendResponse(res, 200, "success", "success", result.rows);
-});
