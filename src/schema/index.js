@@ -64,3 +64,8 @@ export const categorieSchema = {
   editCategorie_Params: ["id", "name", "namevi"],
   deleteCategories_Params: ["id", "name"],
 };
+
+export const statisticSchema = {
+  getRevenue_Params: ["startdate", "enddate"],
+  getUser_Params: ["startdate", "enddate"],
+};

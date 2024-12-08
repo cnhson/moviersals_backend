@@ -192,15 +192,21 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
   const result = await client.query(
     `WITH base_data AS (
       SELECT 
-          t.* 
+          t.*,
+          JSON_AGG(tc.namevi ORDER BY category_name)::text AS categoriesvi
       FROM 
           tbmovieinfo t
+	  LEFT JOIN LATERAL 
+            JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
+      LEFT JOIN 
+            tbcategoriesinfo tc ON category_name = tc.name
       WHERE
           ($3::text IS NULL OR t.name LIKE $3)
           AND
           ($4::text IS NULL OR t.publishyear = $4)
           AND
           ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
+      group by t.id
     ),
     total AS (
       SELECT COUNT(*) AS total_count FROM base_data
