@@ -16,6 +16,7 @@ import {
   getQueryOffset,
   getPageSize,
   getTotalPages,
+  isTokenExpired,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -97,7 +98,6 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
   const user = result.rows[0];
   if (bcrypt.compareSync(params.password, user.password)) {
     let accessToken, refreshToken;
-
     const newRefreshToken = jwt.sign({ userid: user.id, role: user.role, isverified: user.isverified }, process.env.REFRESH_TOKEN_SECRET, {
       expiresIn: "7d",
     });
@@ -110,17 +110,21 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
     );
     const maxconnection = Number(subcriptionconfig.rows[0].connection);
 
+    let storedRefreshToken = storeinfo.rows[0].refreshtoken;
+    if (isTokenExpired(storedRefreshToken)) {
+      storedRefreshToken = newRefreshToken;
+    }
     // get logined ip address array
     const ipaddresslist = await client.query("select useripaddress from tbloginhistory where userid = $1", [user.id]);
     let ipaddressArray = ipaddresslist.rows[0].useripaddress;
 
-    if (ipaddressArray == null || ipaddressArray.length == 0 || storeinfo.rows[0].refreshtoken == null) {
+    if (ipaddressArray == null || ipaddressArray.length == 0 || storedRefreshToken == null) {
       // if ipaddress array is null or refresh token is null
       refreshToken = newRefreshToken;
       ipaddressArray = [requestip];
     } else if (ipaddressArray.length == maxconnection) {
       // if ipaddress array is full and request ip is in ipaddress array
-      if (ipaddressArray.includes(requestip)) refreshToken = storeinfo.rows[0].refreshtoken;
+      if (ipaddressArray.includes(requestip)) refreshToken = storedRefreshToken;
       else {
         /* if ipaddress array is full and request ip is not in ipaddress array, there are no more slots for this user, 
         then generate new refresh token and clear all user ipaddress */
@@ -133,11 +137,9 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
       ipaddressArray = [];
       ipaddressArray.push(requestip);
     } else {
-      // if ipaddress array is not full and request ip is in ipaddress array
-      if (ipaddressArray.includes(requestip)) refreshToken = storeinfo.rows[0].refreshtoken;
-      else {
-        // if ipaddress array is not full and request ip is not in ipaddress array
-        refreshToken = storeinfo.rows[0].refreshtoken;
+      refreshToken = storedRefreshToken;
+      if (!ipaddressArray.includes(requestip)) {
+        // if ipaddress array is not full and request ip is not in array
         ipaddressArray.push(requestip);
       }
     }

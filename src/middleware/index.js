@@ -17,9 +17,9 @@ export async function authenticateJWT(req, res, next) {
   const refreshSecretKey = process.env.REFRESH_TOKEN_SECRET;
   jwt.verify(refreshToken, refreshSecretKey, async (err, user) => {
     if (!err) {
-      const check = await checkValidRefreshToken(refreshToken);
+      const check = await checkMatchRefreshToken(refreshToken);
       if (!check) {
-        return sendResponse(res, 401, "success", "error", "Refresh token không khớp trong hệ thống", "error_no_token");
+        return sendResponse(res, 401, "success", "error", "Refresh token không khớp trong hệ thống", "error_mis_match");
       }
       jwt.verify(accessToken, accessSecretKey, async (err) => {
         if (!err) {
@@ -40,12 +40,12 @@ export async function authenticateJWT(req, res, next) {
         }
       });
     } else {
-      sendResponse(res, 401, "success", "error", "Refresh token không hợp lệ", "error_no_token");
+      sendResponse(res, 401, "success", "error", "Refresh token không hợp lệ", "error_invalid_token");
     }
   });
 }
 
-async function checkValidRefreshToken(refreshToken) {
+async function checkMatchRefreshToken(refreshToken) {
   const client = await dbPool.connect();
   try {
     let result = await client.query("SELECT 1 FROM tbloginhistory WHERE refreshtoken = $1 and now() < expiredate ", [refreshToken]);

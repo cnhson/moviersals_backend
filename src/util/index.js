@@ -1,7 +1,9 @@
+// @ts-nocheck
 import moment from "moment-timezone";
 import { dbPool } from "../services/database.js";
 import querystring from "qs";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 class ValidationError extends Error {
   constructor(message) {
@@ -234,4 +236,18 @@ export function getQueryOffset(page) {
 
 export function getTotalPages(total) {
   return Math.ceil(Number(total) / getPageSize()) || 0;
+}
+
+export function isTokenExpired(refreshToken) {
+  try {
+    const decodedToken = jwt.decode(refreshToken);
+    if (!decodedToken || !decodedToken.exp) {
+      return false;
+    }
+
+    const currentTime = Math.floor(Date.now() / 1000);
+    return decodedToken.exp < currentTime;
+  } catch (error) {
+    console.error("Error decoding token:", error);
+  }
 }

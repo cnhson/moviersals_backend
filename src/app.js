@@ -59,7 +59,7 @@ app.use("/test", (req, res) => {
 
 // Invalid API path middleware
 app.use((req, res) => {
-  sendResponse(res, 404, "fail", "error", "Invalid API path");
+  sendResponse(res, 404, "fail", "error", "Đường dẫn API không tồn tại");
 });
 
 app.listen(PORT, HOST, () => {

@@ -7,6 +7,7 @@ import * as livestreamCon from "../../controller/livestreamCon.js";
 import * as orderCon from "../../controller/orderCon.js";
 import * as subcriptionCon from "../../controller/subcriptionCon.js";
 import * as categorieCon from "../../controller/categorieCon.js";
+import * as statisticCon from "../../controller/statisticCon.js";
 
 const router = Router();
 
@@ -43,5 +44,9 @@ router.post("/subcription/delete", subcriptionCon.deleteSubcriptionPlan_);
 router.post("/categorie/create", categorieCon.createCategories_);
 router.post("/categorie/edit", categorieCon.editCategories_);
 router.post("/categorie/delete", categorieCon.deleteCategories_);
+
+//
+router.post("/statistic/getDateRaneRevenue", statisticCon.getRangeDateRevenue);
+router.get("/statistic/getOther", statisticCon.getOtherStatistic);
 
 export default router;
