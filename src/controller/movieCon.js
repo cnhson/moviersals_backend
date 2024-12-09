@@ -25,9 +25,27 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
 
   const result = await client.query(
     `WITH base_data AS (
+	  WITH total_views AS (
+          SELECT 
+              movieid,
+              SUM(view) AS total_view
+          FROM 
+             tbmovieepisode
+			group by movieid
+      ),
+      avg_ratings AS (
+          SELECT 
+              movieid,
+              AVG(t.rating)::float AS avg_rating
+          FROM 
+              tbmoviecomment t 
+          where isactive = true
+          group by movieid
+      )
         SELECT 
             t.*, 
-            AVG(t2.rating) AS avgrating,
+            (select total_view from total_views sub where sub.movieid = t.movieid) as view,
+            (select avg_rating from avg_ratings sub where sub.movieid = t.movieid) as avgrating,
             JSON_AGG(DISTINCT tc.namevi)::text AS categoriesvi
         FROM 
             tbmovieinfo t
@@ -76,16 +94,35 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
     [userid, movieid]
   );
   const result = await client.query(
-    `SELECT t.*, SUM(t2.view) as view,    
-      JSON_AGG(DISTINCT tc.namevi)::text AS categoriesvi
-      FROM tbmovieinfo t  
-          join tbmovieepisode t2 on t.movieid = t2.movieid
+    `WITH total_views AS (
+          SELECT 
+              SUM(view) AS total_view
+          FROM 
+              tbmovieepisode
+          where movieid = $1
+      ),
+      avg_ratings AS (
+          SELECT 
+              AVG(t.rating)::float AS avg_rating
+          FROM 
+              tbmoviecomment t 
+          where movieid = $1 and isactive = true
+      )
+      SELECT 
+          t.*, 
+          (select * from total_views) as view,
+          (select * from avg_ratings) as avgrating,
+          JSON_AGG(DISTINCT tc.namevi)::text AS categoriesvi
+      FROM 
+          tbmovieinfo t
       LEFT JOIN LATERAL 
           JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
       LEFT JOIN 
           tbcategoriesinfo tc ON category_name = tc.name
-          where t.movieid = $1
-          group by t.id;`,
+      WHERE 
+          t.movieid = $1
+      GROUP BY 
+          t.id;`,
     [movieid]
   );
   const movieDetail = result.rows[0];
@@ -191,38 +228,54 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
 
   const result = await client.query(
     `WITH base_data AS (
-      SELECT 
-          t.*,
-          JSON_AGG(tc.namevi ORDER BY category_name)::text AS categoriesvi
-      FROM 
-          tbmovieinfo t
-	  LEFT JOIN LATERAL 
-            JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
-      LEFT JOIN 
-            tbcategoriesinfo tc ON category_name = tc.name
-      WHERE
-          ($3::text IS NULL OR t.name LIKE $3)
-          AND
-          ($4::text IS NULL OR t.publishyear = $4)
-          AND
-          ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
-      group by t.id
-    ),
-    total AS (
-      SELECT COUNT(*) AS total_count FROM base_data
-    ),
-    data AS (
-      SELECT * FROM base_data
-      LIMIT $1 OFFSET $2
-    )
-    SELECT 
-        (SELECT total_count FROM total) AS total_count, 
-        json_agg(data) AS rows
-    FROM data;`,
+        WITH total_views AS (
+              SELECT 
+                  SUM(view) AS total_view
+              FROM 
+                  tbmovieepisode
+              where movieid = $3
+          ),
+          avg_ratings AS (
+              SELECT 
+                  AVG(t.rating)::float AS avg_rating
+              FROM 
+                  tbmoviecomment t 
+              where movieid = $3 and isactive = true
+          )
+          SELECT 
+              t.*,
+              (select * from total_views) as view,
+              (select * from avg_ratings) as avgrating,
+              JSON_AGG(tc.namevi ORDER BY category_name)::text AS categoriesvi
+          FROM 
+              tbmovieinfo t
+        LEFT JOIN LATERAL 
+                JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
+          LEFT JOIN 
+                tbcategoriesinfo tc ON category_name = tc.name
+          WHERE
+              ($3::text IS NULL OR t.name ILIKE CONCAT('%', $3, '%'))
+              AND
+              ($4::text IS NULL OR t.publishyear = $4)
+              AND
+              ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
+          group by t.id
+        ),
+        total AS (
+          SELECT COUNT(*) AS total_count FROM base_data
+        ),
+        data AS (
+          SELECT * FROM base_data
+          LIMIT $1 OFFSET $2
+        )
+        SELECT 
+            (SELECT total_count FROM total) AS total_count, 
+            json_agg(data) AS rows
+        FROM data;`,
     [
       size,
       offset,
-      moviename ? `%${moviename}%` : null, // Ensure moviename is treated as LIKE search or NULL
+      moviename ? moviename : null, // Ensure moviename is treated as LIKE search or NULL
       year ? year : null, // Ensure year is either the value or NULL
       categories, // Handle categories as JSON
     ]
