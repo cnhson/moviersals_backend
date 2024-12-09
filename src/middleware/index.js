@@ -1,15 +1,19 @@
 import jwt from "jsonwebtoken";
-import { sendResponse } from "../util/index.js";
+import { clearIsLoginCookie, sendResponse } from "../util/index.js";
 import { dbPool } from "../services/database.js";
 
 export async function authenticateJWT(req, res, next) {
   if (!req.cookies) {
+    clearIsLoginCookie(res);
+
     return sendResponse(res, 401, "success", "error", "Không tìm thấy cookie", "error_no_cookie");
   }
 
   const { accessToken, refreshToken } = req.cookies;
 
   if (!refreshToken) {
+    clearIsLoginCookie(res);
+
     return sendResponse(res, 401, "success", "error", "Refresh token bị thiếu", "error_no_token");
   }
 
@@ -19,6 +23,13 @@ export async function authenticateJWT(req, res, next) {
     if (!err) {
       const check = await checkMatchRefreshToken(refreshToken);
       if (!check) {
+        res.cookie("isLoggedIn", "false", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV || "prod" ? true : false,
+          expires: new Date(0),
+          path: "/",
+          sameSite: "Strict",
+        });
         return sendResponse(res, 401, "success", "error", "Refresh token không khớp trong hệ thống", "error_mis_match");
       }
       jwt.verify(accessToken, accessSecretKey, async (err) => {
@@ -40,6 +51,8 @@ export async function authenticateJWT(req, res, next) {
         }
       });
     } else {
+      clearIsLoginCookie(res);
+
       sendResponse(res, 401, "success", "error", "Refresh token không hợp lệ", "error_invalid_token");
     }
   });
@@ -65,6 +78,8 @@ export async function isPrivileged(req, res, next) {
   if (req.user.role == "admin" || req.user.role == "manager") {
     next();
   } else {
+    clearIsLoginCookie(res);
+
     sendResponse(res, 403, "success", "error", "Không có quyền truy cập trang nay", "error_no_permission");
   }
 }

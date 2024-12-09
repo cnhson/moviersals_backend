@@ -251,3 +251,22 @@ export function isTokenExpired(refreshToken) {
     console.error("Error decoding token:", error);
   }
 }
+
+export function setIsLoginCookie(res) {
+  res.cookie("isLoggedIn", "true", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    sameSite: "Strict",
+  });
+}
+
+export function clearIsLoginCookie(res) {
+  res.cookie("isLoggedIn", "false", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    expires: new Date(0),
+    path: "/",
+    sameSite: "Strict",
+  });
+}

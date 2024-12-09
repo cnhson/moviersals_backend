@@ -17,6 +17,7 @@ import {
   getPageSize,
   getTotalPages,
   isTokenExpired,
+  setIsLoginCookie,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -44,25 +45,23 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
 export const logoutAccount = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
   const logoutDate = getStringDatetimeNow();
-  const result = await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 where userid = $1", [
+  await client.query("UPDATE tbloginhistory set expiredate = null,refreshtoken = null, logoutdate = $2 where userid = $1", [
     userid,
     logoutDate,
   ]);
-  if (result.rowCount > 0) {
-    res.cookie("accessToken", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      expires: new Date(0),
-    });
-    res.cookie("refreshToken", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      expires: new Date(0),
-    });
-    return sendResponse(res, 200, "success", "success", "Logout successfully");
-  } else return sendResponse(res, 200, "success", "error", "Logout failed");
+  res.cookie("accessToken", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    expires: new Date(0),
+  });
+  res.cookie("refreshToken", "", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    expires: new Date(0),
+  });
+  return sendResponse(res, 200, "success", "success", "Đăng xuất thành công");
 });
 
 export const editAccountInfo = errorHandler(async (req, res, next, client) => {
@@ -157,6 +156,9 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
       "UPDATE tbloginhistory SET useripaddress = $2, logindate = $3, refreshtoken = $4, expiredate = $5 where userid = $1",
       [user.id, ipaddressArray, loginDate, refreshToken, expireDate]
     );
+
+    setIsLoginCookie(res);
+
     return sendResponse(res, 200, "success", "success", "Đăng nhập thành công");
   } else {
     return sendResponse(res, 200, "success", "error", "Mật khẩu không chính xác");
@@ -277,7 +279,6 @@ export const verifyResetPassword = errorHandlerTransaction(async (req, res, next
   const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
   const result = await client.query("SELECT email, expiredate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result) {
-    const datetimenow = getStringDatetimeNow();
     const exireddate = result.rows[0].expiredate;
     if (getDatetimeNow().isSameOrBefore(exireddate)) {
       let hashedpassword = await bcrypt.hash(params.newpassword, 10);
@@ -333,6 +334,7 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
     on t.id::text = t2.userid where id = $1`,
     [req.user.userid]
   );
+
   return sendResponse(res, 200, "success", "success", result.rows[0]);
 });
 
