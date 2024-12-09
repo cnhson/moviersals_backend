@@ -327,7 +327,7 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
   await client.query("update tbuserinfo set ispremium = " + premiumCheck.rows[0].ispremium + " where id = $1", [userid]);
 
   const result = await client.query(
-    `SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,ispremium,isverified,t2.subcriptionid,thumbnail 
+    `SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,ispremium,isverified,t2.subcriptionid,thumbnail, t2.usingend 
     FROM tbuserinfo t
     join tbusersubscription t2 
     on t.id::text = t2.userid where id = $1`,
@@ -344,4 +344,13 @@ export const changeAccountState = errorHandler(async (req, res, next, client) =>
   await client.query("UPDATE tbuserinfo set isactive = $3 where id = $1 and username = $2", [params.id, params.username, params.isactive]);
 
   return sendResponse(res, 200, "success", "success", stringMsg + " tài khoản thành công");
+});
+
+export const getAccountSubscription = errorHandler(async (req, res, next, client) => {
+  const data = await client.query(
+    "SELECT * from tbusersubscription t join tbsubcriptionplaninfo t2 on t.subcriptionid = t2.subcriptionid where t.userid = $1",
+    [req.user.userid]
+  );
+
+  return sendResponse(res, 200, "success", "success", data.rows[0]);
 });

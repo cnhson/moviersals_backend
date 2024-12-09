@@ -18,6 +18,7 @@ router.post("/account/createEmailVerification", accountCon.createEmailVerificati
 router.post("/account/changepassword", accountCon.changePassword);
 router.post("/account/logout", accountCon.logoutAccount);
 router.post("/account/verifyEmail", accountCon.verifyEmail);
+router.get("/account/getSubcription", accountCon.getAccountSubscription);
 
 // Episode
 router.get("/movie/watch/:movieid/:episodeid", movieCon.getMovieEpisode);
