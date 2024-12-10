@@ -335,6 +335,7 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
     [req.user.userid]
   );
 
+  setIsLoginCookie(res);
   return sendResponse(res, 200, "success", "success", result.rows[0]);
 });
 
