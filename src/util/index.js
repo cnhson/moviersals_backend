@@ -4,6 +4,7 @@ import { dbPool } from "../services/database.js";
 import querystring from "qs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import path from "path";
 
 class ValidationError extends Error {
   constructor(message) {
@@ -124,7 +125,8 @@ export function getReqIpAddress(req) {
 
 export function createToken(res, tokenType, token, milisecond) {
   return res.cookie(tokenType, token, {
-    domain: process.env.NODE_ENV ? "vercel.app" : "localhost",
+    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
+    path: "/",
     httpOnly: true,
     secure: true,
     sameSite: "None",
@@ -255,7 +257,7 @@ export function isTokenExpired(refreshToken) {
 
 export function setIsLoginCookie(res) {
   res.cookie("isLoggedIn", "true", {
-    domain: process.env.NODE_ENV ? "vercel.app" : "localhost",
+    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
     httpOnly: true,
     secure: true,
     path: "/",
@@ -264,8 +266,8 @@ export function setIsLoginCookie(res) {
 }
 
 export function clearIsLoginCookie(res) {
-  res.cookie("isLoggedIn", "false", {
-    domain: process.env.NODE_ENV ? "vercel.app" : "localhost",
+  res.cookie("isLsoggedIn", "false", {
+    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
     httpOnly: true,
     secure: true,
     expires: new Date(0),

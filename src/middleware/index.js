@@ -35,7 +35,7 @@ export async function authenticateJWT(req, res, next) {
           const newAccessToken = jwt.sign({ user }, accessSecretKey, { expiresIn: "1h" });
 
           res.cookie("accessToken", newAccessToken, {
-            domain: process.env.NODE_ENV ? "vercel.app" : "localhost",
+            domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
             httpOnly: true,
             secure: true,
             sameSite: "None",

@@ -56,17 +56,19 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
     logoutDate,
   ]);
   res.cookie("accessToken", "", {
-    domain: process.env.NODE_ENV ? "vercel.app" : "localhost",
+    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
     httpOnly: true,
     secure: true,
     sameSite: "None",
+    path: "/",
     expires: new Date(0),
   });
   res.cookie("refreshToken", "", {
-    domain: process.env.NODE_ENV ? "vercel.app" : "localhost",
+    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
     httpOnly: true,
     secure: true,
     sameSite: "None",
+    path: "/",
     expires: new Date(0),
   });
   return sendResponse(res, 200, "success", "success", "Đăng xuất thành công");
