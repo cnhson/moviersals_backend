@@ -45,7 +45,7 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   await client.query("INSERT INTO tbusersubscription (userid, subcriptionid) VALUES ($1,'FREE')", [userid]);
   await client.query("INSERT INTO tbfavouritelist (userid) VALUES ($1)", [userid]);
 
-  return sendResponse(res, 200, "success", "Account created successfully");
+  return sendResponse(res, 200, "success", "success", "Tạo tài khoản thành công");
 });
 
 export const logoutAccount = errorHandler(async (req, res, next, client) => {
@@ -81,8 +81,8 @@ export const editAccountInfo = errorHandler(async (req, res, next, client) => {
     "UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4, thumbnail = $5, modifieddate = $6 where id = $1",
     [userid, params.displayname, params.email, params.phonenumber, imageUrl, modifiedDateTime]
   );
-  if (result.rowCount > 0) return sendResponse(res, 200, "success", "success", "Edit successfully");
-  return sendResponse(res, 200, "success", "error", "Edit failed");
+  if (result.rowCount > 0) return sendResponse(res, 200, "success", "success", "Chỉnh sửa thành công");
+  return sendResponse(res, 200, "success", "error", "Chỉnh sửa thất bạis");
 });
 
 export const loginAccount = errorHandler(async (req, res, next, client) => {
