@@ -56,7 +56,6 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
     logoutDate,
   ]);
   res.cookie("accessToken", "", {
-    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
     httpOnly: true,
     secure: true,
     sameSite: "None",
@@ -64,7 +63,6 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
     expires: new Date(0),
   });
   res.cookie("refreshToken", "", {
-    domain: process.env.NODE_ENV ? ".vercel.app" : "localhost",
     httpOnly: true,
     secure: true,
     sameSite: "None",
