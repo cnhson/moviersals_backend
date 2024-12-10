@@ -125,7 +125,7 @@ export function getReqIpAddress(req) {
 export function createToken(res, tokenType, token, milisecond) {
   return res.cookie(tokenType, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV || "prod" ? true : false,
+    secure: true,
     sameSite: "None",
     maxAge: milisecond,
   });
@@ -255,7 +255,7 @@ export function isTokenExpired(refreshToken) {
 export function setIsLoginCookie(res) {
   res.cookie("isLoggedIn", "true", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "prod",
+    secure: true,
     path: "/",
     sameSite: "None",
   });
@@ -264,7 +264,7 @@ export function setIsLoginCookie(res) {
 export function clearIsLoginCookie(res) {
   res.cookie("isLoggedIn", "false", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "prod",
+    secure: true,
     expires: new Date(0),
     path: "/",
     sameSite: "None",
