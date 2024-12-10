@@ -23,13 +23,8 @@ export async function authenticateJWT(req, res, next) {
     if (!err) {
       const check = await checkMatchRefreshToken(refreshToken);
       if (!check) {
-        res.cookie("isLoggedIn", "false", {
-          httpOnly: true,
-          secure: process.env.NODE_ENV || "prod" ? true : false,
-          expires: new Date(0),
-          path: "/",
-          sameSite: "Strict",
-        });
+        clearIsLoginCookie(res);
+
         return sendResponse(res, 401, "success", "error", "Refresh token không khớp trong hệ thống", "error_mis_match");
       }
       jwt.verify(accessToken, accessSecretKey, async (err) => {

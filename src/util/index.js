@@ -255,18 +255,18 @@ export function isTokenExpired(refreshToken) {
 export function setIsLoginCookie(res) {
   res.cookie("isLoggedIn", "true", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "prod",
     path: "/",
-    sameSite: "Strict",
+    sameSite: "None",
   });
 }
 
 export function clearIsLoginCookie(res) {
   res.cookie("isLoggedIn", "false", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "prod",
     expires: new Date(0),
     path: "/",
-    sameSite: "Strict",
+    sameSite: "None",
   });
 }
