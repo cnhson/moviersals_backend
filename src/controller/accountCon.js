@@ -43,7 +43,6 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   await client.query("INSERT INTO tbpasswordreset (userid, email) VALUES ($1, $2)", [userid, params.email]);
   await client.query("INSERT INTO tbemailverification (userid, email) VALUES ($1, $2)", [userid, params.email]);
   await client.query("INSERT INTO tbusersubscription (userid, subcriptionid) VALUES ($1,'FREE')", [userid]);
-  await client.query("INSERT INTO tbfavouritelist (userid) VALUES ($1)", [userid]);
 
   return sendResponse(res, 200, "success", "success", "Tạo tài khoản thành công");
 });
