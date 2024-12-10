@@ -18,6 +18,7 @@ import {
   getTotalPages,
   isTokenExpired,
   setIsLoginCookie,
+  clearIsLoginCookie,
 } from "../util/index.js";
 import { sendEmail } from "../services/mailer.js";
 import { accountSchema } from "../schema/index.js";
@@ -25,9 +26,14 @@ import { uploadCloudImage } from "../services/cloudinary.js";
 
 export const createAccount = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.createAccountParams);
+
+  const exist = await client.query("Select 1 from tbuserinfo where username = $1 or email = $2", [params.username, params.email]);
+  if (exist.rowCount > 0) return sendResponse(res, 200, "success", "error", "Tài khoản đã tồn tại");
+
   const role = "customer";
   const hashedPassword = await bcrypt.hash(params.password, 10);
   const createddate = getStringDatetimeNow();
+
   const result = await client.query(
     "INSERT INTO tbuserinfo (username, password, displayname, email, phonenumber, role, ispremium, createddate) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
     [params.username, hashedPassword, params.displayname, params.email, params.phonenumber, role, false, createddate]
@@ -81,7 +87,7 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.loginAccountParams);
   const requestip = getReqIpAddress(req);
   const activecheck = await client.query('select "isactive" = false as check from tbuserinfo t where t.username = $1', [params.username]);
-  if (activecheck.rows[0].check)
+  if (activecheck.rows[0]?.check)
     return sendResponse(
       res,
       403,
@@ -319,6 +325,14 @@ export const getAllUser_ = errorHandler(async (req, res, next, client) => {
 
 export const checkAuthenciation = errorHandler(async (req, res, next, client) => {
   const userid = req.user.userid;
+  const userip = getReqIpAddress(req);
+
+  const check = await client.query("select * from tbloginhistory t where t.useripaddress @> Array[$1] and t.userid = $2", [userip, userid]);
+
+  if (check.rowCount == 0) {
+    clearIsLoginCookie(res);
+    return sendResponse(res, 200, "success", "error", null);
+  }
 
   const premiumCheck = await client.query(
     "SELECT EXISTS ( SELECT 1 FROM tbusersubscription t where t.usingend > NOW() and isactive = true and t.userid = $1) AS ispremium",
