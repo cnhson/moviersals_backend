@@ -283,7 +283,7 @@ export const checkResetPasswordToken = errorHandler(async (req, res, next, clien
 });
 
 export const verifyResetPassword = errorHandlerTransaction(async (req, res, next, client) => {
-  const params = preProcessingBodyParam(req, accountSchema.checkResetPasswordToken);
+  const params = preProcessingBodyParam(req, accountSchema.verifyResetPassword);
   const result = await client.query("SELECT email, expiredate FROM tbpasswordreset WHERE passwordtoken = $1", [params.passwordtoken]);
   if (result) {
     const exireddate = result.rows[0].expiredate;
