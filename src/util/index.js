@@ -143,7 +143,7 @@ export function errorHandler(fn) {
         return sendResponse(res, 400, "fail", "error", error.message);
       }
       console.log("errorhanlder ", error);
-      return sendResponse(res, 500, "fail", "Internal server error");
+      return sendResponse(res, 500, "fail", "error", "Internal server error");
     } finally {
       client.release();
     }

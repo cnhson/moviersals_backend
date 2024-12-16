@@ -23,7 +23,7 @@ router.post("/episode/delete", episodeCon.deleteEpisode_);
 // Movie
 router.post("/movie/testupload", multerType("thumbnail"), movieCon.testUploadImage_);
 router.post("/movie/upload", multerType("thumbnail"), movieCon.createMovieInfo_);
-router.post("/movie/edit", multerType("thumbnail"), movieCon.editMovieInfo_);
+router.post("/movie/edit", multerType("thumbnail", false), movieCon.editMovieInfo_);
 router.post("/movie/delete", movieCon.deleteMovieInfo_);
 router.get("/movie/get/:movieid", movieCon.getMovieAllEpisodes_);
 

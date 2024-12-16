@@ -156,13 +156,14 @@ export const uploadImage_ = errorHandler(async (req, res, next, client) => {
 
 export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.createMovieInfo_Params);
-  if (!req.file) return sendResponse(res, 200, "fail", "Không tìm thấy file hình ảnh");
+
+  const categoriesArray = JSON.parse(params.categories) || [];
+  if (categoriesArray.length == 0) return sendResponse(res, 200, "success", "error", "Thể loại không được để trống");
+  params.categories = params.categories.replace(/\\"/g, '"');
+
   const imageUrl = await uploadCloudImage(req.file);
   const createdDateTime = getStringDatetimeNow();
 
-  if (params.categories.startsWith('["') && params.categories.endsWith('"]')) {
-    params.categories = params.categories.replace(/\\"/g, '"');
-  }
   const movieid = convertToPlainText(params.name);
   await client.query(
     "INSERT INTO tbmovieinfo (name, description, publisher, publishyear, thumbnail, categories, type, ispremium, createddate, movieid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
@@ -184,11 +185,17 @@ export const createMovieInfo_ = errorHandler(async (req, res, next, client) => {
 
 export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, movieSchema.editMovieInfo_Params);
+
+  const categoriesArray = JSON.parse(params.categories) || [];
+  if (categoriesArray.length == 0) return sendResponse(res, 200, "success", "error", "Thể loại không được để trống");
+  params.categories = params.categories.replace(/\\"/g, '"');
+
   if (req.file) {
-    const tuhmbnailResult = await client.query("SELECT thumbnail FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
-    const storedpublickey = tuhmbnailResult.rows[0].thumbnail.substr(process.env.CLOUD_IMAGE_URL.length);
+    const thumbnailResult = await client.query("SELECT thumbnail FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
+    const storedpublickey = thumbnailResult.rows[0].thumbnail.substr(process.env.CLOUD_IMAGE_URL.length);
     await replaceCLoudImage(req.file, storedpublickey);
   }
+
   const modifiedDate = getStringDatetimeNow();
   await client.query(
     "UPDATE tbmovieinfo SET name = $1, description = $2, publisher = $3, publishyear = $4, categories = $5, type = $6, ispremium = $7, modifieddate = $8 WHERE id = $9",
@@ -216,6 +223,7 @@ export const deleteMovieInfo_ = errorHandler(async (req, res, next, client) => {
 export const categoriesFilter = errorHandler(async (req, res, next, client) => {
   const moviename = req.body.moviename || null;
   let categories = req.body.categories || null;
+  const ispremium = req.body.ispremium || null;
 
   if (categories.includes('"')) {
     categories = categories.replace(/\\"/g, '"');
@@ -259,6 +267,8 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
               ($4::text IS NULL OR t.publishyear = $4)
               AND
               ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
+              AND
+              ($6::boolean IS NULL OR t.ispremium = $6)
           group by t.id
         ),
         total AS (
@@ -278,6 +288,7 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
       moviename ? moviename : null, // Ensure moviename is treated as LIKE search or NULL
       year ? year : null, // Ensure year is either the value or NULL
       categories, // Handle categories as JSON
+      ispremium,
     ]
   );
 

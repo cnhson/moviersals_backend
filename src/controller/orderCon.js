@@ -41,7 +41,7 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
     const expiredate = getExtendDatetime(30, 0, 0);
     await client.query(
       "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, paymentdate, status, amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, createddate, status, price]
+      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, createddate, status, priceData]
     );
     await client.query(
       "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",

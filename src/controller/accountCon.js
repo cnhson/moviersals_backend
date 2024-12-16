@@ -78,10 +78,19 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
 export const editAccountInfo = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.editAccountParams);
   const userid = req.user.userid;
-  const imageUrl = await uploadCloudImage(req.file);
+  let imageUrl = null;
+  if (req.file) imageUrl = await uploadCloudImage(req.file);
+
   const modifiedDateTime = getStringDatetimeNow();
   const result = await client.query(
-    "UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4, thumbnail = $5, modifieddate = $6 where id = $1",
+    `UPDATE tbuserinfo 
+      SET 
+      displayname = $2, 
+      email = $3, 
+      phonenumber = $4, 
+      thumbnail = CASE WHEN $5::text IS NOT NULL THEN $5::text ELSE thumbnail END, 
+      modifieddate = $6 
+    WHERE id = $1`,
     [userid, params.displayname, params.email, params.phonenumber, imageUrl, modifiedDateTime]
   );
   if (result.rowCount > 0) return sendResponse(res, 200, "success", "success", "Chỉnh sửa thông tin thành công");
