@@ -31,9 +31,8 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
     params.username,
     params.email,
   ]);
-  console.log(exist.rows[0]);
-  if (exist.rows[0]?.username == params.username) return sendResponse(res, 200, "success", "error", "Username is used");
-  else if (exist.rows[0]?.email == params.email) return sendResponse(res, 200, "success", "error", "Email is used");
+  if (exist.rows[0]?.username == params.username) return sendResponse(res, 200, "success", "error", "Tên đăng nhập đã được sử dụng");
+  else if (exist.rows[0]?.email == params.email) return sendResponse(res, 200, "success", "error", "Email đã được sử dụng");
 
   const role = "customer";
   const hashedPassword = await bcrypt.hash(params.password, 10);
@@ -49,7 +48,7 @@ export const createAccount = errorHandlerTransaction(async (req, res, next, clie
   await client.query("INSERT INTO tbemailverification (userid, email) VALUES ($1, $2)", [userid, params.email]);
   await client.query("INSERT INTO tbusersubscription (userid, subcriptionid) VALUES ($1,'FREE')", [userid]);
 
-  return sendResponse(res, 200, "success", "success", "Create account successfully");
+  return sendResponse(res, 200, "success", "success", "Tạo tài khoản thành công");
 });
 
 export const logoutAccount = errorHandler(async (req, res, next, client) => {
@@ -73,7 +72,7 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
     path: "/",
     expires: new Date(0),
   });
-  return sendResponse(res, 200, "success", "success", "Logout successfully");
+  return sendResponse(res, 200, "success", "success", "Đăng xuất thành công");
 });
 
 export const editAccountInfo = errorHandler(async (req, res, next, client) => {
@@ -85,8 +84,8 @@ export const editAccountInfo = errorHandler(async (req, res, next, client) => {
     "UPDATE tbuserinfo SET displayname = $2, email = $3, phonenumber = $4, thumbnail = $5, modifieddate = $6 where id = $1",
     [userid, params.displayname, params.email, params.phonenumber, imageUrl, modifiedDateTime]
   );
-  if (result.rowCount > 0) return sendResponse(res, 200, "success", "success", "Edit successfully");
-  return sendResponse(res, 200, "success", "error", "Edit fail");
+  if (result.rowCount > 0) return sendResponse(res, 200, "success", "success", "Chỉnh sửa thông tin thành công");
+  return sendResponse(res, 200, "success", "error", "Chỉnh sửa thông tin thất bại");
 });
 
 export const loginAccount = errorHandler(async (req, res, next, client) => {
@@ -104,7 +103,7 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
     );
   const result = await client.query("SELECT * FROM tbuserinfo WHERE username = $1", [params.username]);
   if (result.rowCount == 0) {
-    return sendResponse(res, 200, "success", "error", "Account doesn't exist");
+    return sendResponse(res, 200, "success", "error", "Tên đăng nhập không tồn tài");
   }
   const user = result.rows[0];
   if (bcrypt.compareSync(params.password, user.password)) {
@@ -171,9 +170,9 @@ export const loginAccount = errorHandler(async (req, res, next, client) => {
 
     setIsLoginCookie(res);
 
-    return sendResponse(res, 200, "success", "success", "Login successsfully");
+    return sendResponse(res, 200, "success", "success", "Đăng nhập thành công");
   } else {
-    return sendResponse(res, 200, "success", "error", "Incorrect password");
+    return sendResponse(res, 200, "success", "error", "Sai mật khẩu");
   }
 });
 
@@ -185,12 +184,12 @@ export const changePassword = errorHandler(async (req, res, next, client) => {
   if (result) {
     let checkPassword = bcrypt.compareSync(params.oldpassword, result.rows[0].password);
     if (!checkPassword) {
-      sendResponse(res, 200, "success", "error", "Incorrect current password");
+      sendResponse(res, 200, "success", "error", "Mật khẩu chưa chính xác");
     } else {
       let newHashedPassword = await bcrypt.hash(params.newpassword, 10);
       const updateResult = await client.query("UPDATE tbuserinfo SET password = $2 where id = $1", [userid, newHashedPassword]);
       if (updateResult.rowCount > 0) {
-        sendResponse(res, 200, "success", "success", "Change password successfully");
+        sendResponse(res, 200, "success", "success", "Đổi mật khẩu thành công");
       }
     }
   }
@@ -202,7 +201,7 @@ export const createEmailVerification = errorHandlerTransaction(async (req, res, 
   const result = await client.query("SELECT * FROM tbemailverification where userid = $1", [userid]);
   const tokenexpiredate = getConvertedDatetime(result.rows[0].expiredate);
   if (getDatetimeNow().isSameOrBefore(tokenexpiredate))
-    return sendResponse(res, 200, "success", "error", "Token can only be created 1 time every 5 minutes");
+    return sendResponse(res, 200, "success", "error", "Token chỉ có thể tạo mới mỗi 5 phút 1 lần");
 
   const emailToken = generateRandomString(12);
   const expireDate = getExtendDatetime(0, 0, 5);
@@ -217,10 +216,10 @@ export const createEmailVerification = errorHandlerTransaction(async (req, res, 
   ]);
   await sendEmail(
     params.email,
-    "Email verification",
-    `Your email verification token is ${emailToken}, it will expire in 5 minutes at ${expireDate}!`
+    "[Thông báo] Xác nhận Email",
+    `Mã xác nhận email của quý khách là ${emailToken}, nó sẽ hết hạn 5 phút nữa vào lúc ${expireDate}!\nNếu quý khách không phải là người yêu cầu hành động trên, hay bỏ qua email này`
   );
-  sendResponse(res, 200, "success", "success", "Please check your email to get verification token");
+  sendResponse(res, 200, "success", "success", "Vui lòng kiểm tra email để lấy token");
 });
 
 export const verifyEmail = errorHandler(async (req, res, next, client) => {
@@ -240,9 +239,9 @@ export const verifyEmail = errorHandler(async (req, res, next, client) => {
           userid,
           params.email,
         ]);
-        return sendResponse(res, 200, "success", "success", "Verify email successfully");
+        return sendResponse(res, 200, "success", "success", "Xác nhận email thành công");
       }
-    } else return sendResponse(res, 200, "success", "error", "Token is expired, please request a new one");
+    } else return sendResponse(res, 200, "success", "error", "Token đã hết hạn, vui lòng yêu cầu cái mới");
   }
 });
 
@@ -251,12 +250,12 @@ export const createResetPasswordToken = errorHandler(async (req, res, next, clie
 
   const previouscheck = await client.query("SELECT * FROM tbpasswordreset WHERE email = $1", [params.email]);
   if (previouscheck.rowCount == 0) {
-    sendResponse(res, 200, "success", "error", "Email don't exist to any account");
+    sendResponse(res, 200, "success", "error", "Email không tồn tại ở bất kỳ tài khoản nào");
   }
   const oldexpiredatetime = getConvertedDatetime(previouscheck.rows[0].expiredate);
 
   if (getDatetimeNow().isBefore(oldexpiredatetime))
-    return sendResponse(res, 200, "success", "error", "You can only request a new password reset token once every 5 minutes");
+    return sendResponse(res, 200, "success", "error", "Quý khách chỉ có thể yêu cầu token đặt lại mật khẩu mỗi 5 phút 1 lần");
 
   const passwordResetToken = generateRandomString(30);
   const expireDate = getExtendDatetime(0, 0, 5);
@@ -270,12 +269,12 @@ export const createResetPasswordToken = errorHandler(async (req, res, next, clie
   if (result.rowCount > 0) {
     await sendEmail(
       params.email,
-      "Password reset",
-      `Your password reset link is ${process.env.FRONTEND_URL}/passwordrecovery/confirm?token=${passwordResetToken}, it will expire in 5 minutes at ${expireDate}!`
+      "[Thông báo] Đặt lại mật khẩu",
+      `Đường dẫn đặt lại mất khẩu của quý khách là ${process.env.FRONTEND_URL}/passwordrecovery/confirm?token=${passwordResetToken} , nó sẽ hết hạn 5 phút nữa vào lúc ${expireDate}!\nNếu quý khách không phải là người yêu cầu hành động trên, hay bỏ qua email này`
     );
-    sendResponse(res, 200, "success", "success", "Check your email for password reset link");
+    sendResponse(res, 200, "success", "success", "Hãy kiểm tra email để nhận đường dẫn");
   } else {
-    sendResponse(res, 200, "success", "error", "Email not found");
+    sendResponse(res, 200, "success", "error", "Không tìm thấy email trong hệ thống");
   }
 });
 
@@ -285,9 +284,9 @@ export const checkResetPasswordToken = errorHandler(async (req, res, next, clien
   if (result.rowCount > 0) {
     const exireddate = result.rows[0].expiredate;
     if (getDatetimeNow().isSameOrBefore(exireddate)) {
-      return sendResponse(res, 200, "success", "success", "Exist password reset token");
-    } else return sendResponse(res, 200, "success", "error", "Expired password reset token");
-  } else return sendResponse(res, 200, "success", "error", "Invalid password reset token");
+      return sendResponse(res, 200, "success", "success", "Đã tìm thấy token đặt lại mật khẩu");
+    } else return sendResponse(res, 200, "success", "error", "Token đặt lại mật khẩu đã hết hạn");
+  } else return sendResponse(res, 200, "success", "error", "Token đặt lại mật khẩu không hợp lệ");
 });
 
 export const verifyResetPassword = errorHandlerTransaction(async (req, res, next, client) => {
@@ -297,13 +296,13 @@ export const verifyResetPassword = errorHandlerTransaction(async (req, res, next
     const exireddate = result.rows[0].expiredate;
     if (getDatetimeNow().isSameOrBefore(exireddate)) {
       let hashedpassword = await bcrypt.hash(params.newpassword, 10);
-      await client.query("UPDATE tbuserinfo SET password = $1 WHERE email = $2", [hashedpassword, result.rows[0].email]);
-      await client.query("UPDATE tbpasswordreset SET passwordtoken = null, expiredate = null, createddate = null WHERE email = $2", [
-        hashedpassword,
+
+      await client.query(`UPDATE tbuserinfo SET password = $1 WHERE email = $2`, [hashedpassword, result.rows[0].email]);
+      await client.query("UPDATE tbpasswordreset SET passwordtoken = null, expiredate = null, createddate = null WHERE email = $1", [
         result.rows[0].email,
       ]);
-      return sendResponse(res, 200, "success", "success", "Reset password successfully");
-    } else return sendResponse(res, 200, "success", "error", "Token expired, please request a new one");
+      return sendResponse(res, 200, "success", "success", "Đặt lại mật khẩu thành công");
+    } else return sendResponse(res, 200, "success", "error", "Token đã hết hạn, vui lòng yêu cầu cái mới");
   }
 });
 
@@ -364,17 +363,17 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
 
 export const changeAccountState = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.changeAccountActiveState_Params);
-  let stringMsg = "Disactive";
-  if (params.isactive == true) stringMsg = "Active";
+  let stringMsg = "Khóa";
+  if (params.isactive == true) stringMsg = "Mở khóa";
 
   await client.query("UPDATE tbuserinfo set isactive = $3 where id = $1 and username = $2", [params.id, params.username, params.isactive]);
 
-  return sendResponse(res, 200, "success", "success", stringMsg + " account successfully");
+  return sendResponse(res, 200, "success", "success", stringMsg + " tài khoản thành công");
 });
 
 export const getAccountSubscription = errorHandler(async (req, res, next, client) => {
   const data = await client.query(
-    "SELECT * from tbusersubscription t join tbsubcriptionplaninfo t2 on t.subcriptionid = t2.subcriptionid where t.userid = $1",
+    "SELECT t.*, t2.priority, t2.name from tbusersubscription t join tbsubcriptionplaninfo t2 on t.subcriptionid = t2.subcriptionid where t.userid = $1",
     [req.user.userid]
   );
 

@@ -1,4 +1,4 @@
-import {
+import getUSDConversionRate, {
   generateRandomString,
   sendResponse,
   getStringDatetimeNow,
@@ -19,8 +19,11 @@ import {
   getPageSize,
   errorHandlerTransactionPlain,
   getTotalPages,
+  calculateDaysTo,
+  errorHandlerTransactionPlainWithValue,
 } from "../util/index.js";
 import { orderSchema } from "../schema/index.js";
+import { sendEmail } from "../services/mailer.js";
 
 export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, orderSchema.createPaypalOrderParams);
@@ -29,28 +32,26 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
   const orderid = "OD" + generateRandomString(20);
   const paypalorderid = "PAYPAL_" + generateRandomString(20);
   const status = "PAID";
+  const ratioResult = await getUSDConversionRate();
+  const rate = ratioResult.rates.VND;
   const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
   if (subcriptioninfo.rowCount == 1) {
-    const duration = subcriptioninfo.rows[0].daysduration;
-
-    const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [userid]);
-
-    const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
-
+    const priceData = await getAmountToPay(userid, params.subcriptionid);
+    const price = (Number(priceData) / rate).toPrecision(3);
+    const expiredate = getExtendDatetime(30, 0, 0);
     await client.query(
       "insert into tborderhistory (orderid, userid, subcriptionid, paymentmethod, paymentid, createddate, paymentdate, status, amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, createddate, status, subcriptioninfo.rows[0].price]
+      [orderid, userid, params.subcriptionid, "PAYPAL", paypalorderid, createddate, createddate, status, price]
     );
     await client.query(
       "insert into tbpaypalpayment (id,  paymentid,  email, payerid, amount, createddate) VALUES ($1, $2, $3, $4, $5, $6)",
-      [params.id, paypalorderid, params.email, params.payerid, params.amount, createddate]
+      [params.id, paypalorderid, params.email, params.payerid, price, createddate]
     );
-
-    (await handleUpdateUserSubscription(userid, params.subcriptionid, createddate, expiredate, paypalorderid))();
-
-    return sendResponse(res, 200, "success", "success", "Create order successfully");
+    await handleUpdateUserSubscription(userid, params.subcriptionid, createddate, expiredate, orderid, "PAYPAL", price, "$");
+    return sendResponse(res, 200, "success", "success", "Thanh toán Paypal thành công");
   }
-  return sendResponse(res, 200, "success", "error", "Subcription not exist");
+  console.log("Subcription not exist");
+  return sendResponse(res, 200, "success", "error", "Thanh toán Paypal thất bại");
 });
 
 export const getAllOrders_ = errorHandler(async (req, res, next, client) => {
@@ -71,7 +72,7 @@ export const getOrderPaymentDetail = errorHandler(async (req, res, next, client)
       tableName = "tbvnpaypayment";
       break;
     default:
-      return sendResponse(res, 200, "success", "error", "Payment method not exist");
+      return sendResponse(res, 200, "success", "error", "Phương thức thanh toán không tồn tại");
   }
   const result = await client.query("SELECT * FROM " + tableName + " WHERE paymentid = $1", [params.paymentid]);
   return sendResponse(res, 200, "success", "success", result.rows);
@@ -107,7 +108,8 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
 
   const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
   if (subcriptioninfo.rowCount == 0) {
-    return sendResponse(res, 200, "success", "error", "Subcription id not exist");
+    console.log("Subcription not exist: ", params.subcriptionid);
+    return sendResponse(res, 200, "success", "error", "Mã gói dịch vụ không tồn tại");
   }
 
   const checkpending = await client.query(`select * from tborderhistory where userid = $1 and subcriptionid = $2 and status = 'PENDING'`, [
@@ -127,6 +129,8 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
     }
   }
 
+  const priceData = await getAmountToPay(req.user.userid, params.subcriptionid);
+
   let date = new Date();
   let createDate = getInputVNPayDatetimeNow(date);
   let ipAddr = getReqIpAddress(req);
@@ -139,7 +143,7 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
   let orderId = "VNPAY_" + generateRandomString(20);
   let orderdescription =
     "Thanh toan cho ma GD: " + orderId + ", ma goi dich vu: " + params.subcriptionid + ", ma khach hang: " + req.user.userid + ",";
-  let amount = req.body.amount;
+  let amount = Number(priceData);
   let locale = "vn";
   let currCode = "VND";
   let vnp_Params = {};
@@ -229,6 +233,7 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
           //kiểm tra tình trạng giao dịch trước khi cập nhật tình trạng thanh toán
           if (rspCode == "00") {
             //thanh cong
+            const data = await client.query("select orderid from tborderhistory t where t.paymentid = $1", [orderId]);
             const regex = /:\s*([^,]+)/g;
             const splitDataArray = [];
 
@@ -240,13 +245,18 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
             }
             const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [splitDataArray[1]]);
             if (subcriptioninfo.rowCount == 1) {
-              const duration = subcriptioninfo.rows[0].daysduration;
+              const expiredate = getExtendDatetime(30, 0, 0);
 
-              const usersubcription = await client.query("select usingend from tbusersubscription where userid = $1", [splitDataArray[2]]);
-
-              const expiredate = getInputExtendDatetime(usersubcription.rows[0].usingend, duration, 0);
-
-              (await handleUpdateUserSubscription(splitDataArray[2], splitDataArray[1], getStringDatetimeNow(), expiredate, orderId))();
+              await handleUpdateUserSubscription(
+                splitDataArray[2],
+                splitDataArray[1],
+                getStringDatetimeNow(),
+                expiredate,
+                data.rows[0].orderid,
+                "VNPAY",
+                amount,
+                "VND"
+              );
 
               const paymentstatus = "PAID";
               await client.query("UPDATE tborderhistory SET status = $2, paymentdate = $3, amount = $4 WHERE paymentid = $1", [
@@ -280,33 +290,79 @@ export const hanldeVNPayIPN = errorHandlerTransaction(async (req, res, next, cli
   }
 });
 
-const handleUpdateUserSubscription = async (userid, new_subcriptionid, usingstart, usingend, paymentid) =>
+const handleUpdateUserSubscription = async (userid, new_subcriptionid, usingstart, usingend, orderid, paymentmethod, price, currency) =>
   errorHandlerTransactionPlain(async (client) => {
-    let type = "";
-    const compareSubcription = await client.query(
-      `
-      SELECT t.priority,  t.subcriptionid
-      FROM tbsubcriptionplaninfo t
-      JOIN tbusersubscription t2
-        ON t.subcriptionid = t2.subcriptionid
-      WHERE t2.userid = $1
-      UNION 
-      SELECT t.priority, t.subcriptionid
-      FROM tbsubcriptionplaninfo t
-      WHERE t.subcriptionid = $2;
-    `,
-      [userid, new_subcriptionid]
-    );
-
-    if (compareSubcription.rowCount == 1) {
-      type = "EXTEND";
-    } else {
-      if (compareSubcription.rows[0].priority > compareSubcription.rows[1].priority) type = "DOWNGRADE";
-      else type = "UPGRADE";
-    }
-    await client.query("update tborderhistory set type = $2 where paymentid = $1", [paymentid, type]);
+    // only update subscription id if user have already purchased
     await client.query(
-      "update tbusersubscription set isactive = $2, usingstart = $3, usingend = $4, subcriptionid = $5,activetime = activetime + 1 where userid = $1",
+      `WITH current_subscription AS (
+          SELECT usingend FROM tbusersubscription WHERE userid = $1
+        )
+        UPDATE tbusersubscription
+        SET
+          isactive = $2,
+          subcriptionid = $5,
+          usingstart = CASE WHEN (SELECT usingend FROM current_subscription) IS NULL THEN $3 ELSE usingstart END,
+          usingend = CASE WHEN (SELECT usingend FROM current_subscription) IS NULL THEN $4 ELSE usingend END
+        WHERE userid = $1;`,
       [userid, true, usingstart, usingend, new_subcriptionid]
     );
+    let priceString = "";
+    if (currency == "VND") priceString = `${price} VND`;
+    else priceString = `$ ${price}`;
+
+    const data = await client.query(`select email from tbuserinfo t where t.id = $1`, [userid]);
+    const email = data.rows[0].email;
+    const datetime = getStringDatetimeNow();
+    sendEmail(
+      email,
+      `[Giao dịch] Đơn hàng ${orderid} đã thanh toán thành công`,
+      `Đây là thư gửi tự động.
+      \nCảm ơn quý khách đã mua gói dịch vụ của chúng tôi, mã thanh toán của quý khách là: <b>${orderid}</b>, thời gian thanh toán: <b>${datetime}</b>.
+      \nThanh toán bằng phương thức <b>${paymentmethod}</b>, số tiền thanh toán: <b>${priceString}</b>`
+    );
+  });
+
+export const getAmountToPay = async (userid, new_subcriptionid) =>
+  errorHandlerTransactionPlainWithValue(async (client) => {
+    let currentSubcriptionId = "";
+    let amountToPay = 0;
+    const upgradeFee = 10000; // Vietnam Dong
+    const daysduration = 30;
+    const subcriptionCheck = await client.query(
+      `SELECT 
+        userid, usingstart, usingend, t.subcriptionid, 
+        CASE 
+            WHEN usingend < NOW() THEN true 
+            When usingend is null then true
+            ELSE false 
+        END AS isexpired,
+        t2.price
+        FROM tbusersubscription t 
+        join tbsubcriptionplaninfo t2 on t.subcriptionid  = t2.subcriptionid 
+        where t.userid = $1
+      `,
+      [userid]
+    );
+    const newSubcription = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [new_subcriptionid]);
+    const newSubcriptionPrice = newSubcription.rows[0].price;
+
+    if (subcriptionCheck.rows[0].isexpired == true) {
+      currentSubcriptionId = "FREE";
+      if (subcriptionCheck.rows[0].usingend != null)
+        await client.query("update tbusersubscription set subcriptionid = $2, usingstart = NULL, usingend = NULL  where userid = $1", [
+          userid,
+          new_subcriptionid,
+        ]);
+      amountToPay = Number(newSubcriptionPrice);
+    } else {
+      currentSubcriptionId = subcriptionCheck.rows[0].subcriptionid;
+      const unUseDays = calculateDaysTo(subcriptionCheck.rows[0].usingend);
+      if (unUseDays < daysduration) {
+        const unUseTotalPrice = ((unUseDays / daysduration) * subcriptionCheck.rows[0].price).toFixed(0);
+        const newPrice = Number(newSubcriptionPrice) - Number(unUseTotalPrice) + upgradeFee;
+        amountToPay = newPrice;
+      } else amountToPay = Number(newSubcriptionPrice);
+    }
+
+    return amountToPay;
   });

@@ -32,7 +32,7 @@ export async function sendEmail(to, subject, text) {
   async function sendMail() {
     try {
       await transporter.sendMail(mailOptions);
-      console.log("Password reset email sent!");
+      console.log("Email sent!");
       return;
     } catch (err) {
       console.log(err);

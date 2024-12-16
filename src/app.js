@@ -53,7 +53,7 @@ app.get("/favicon.ico", (req, res) => {
 app.use("/api", publicRoutes);
 app.use("/api/internal", authenticateJWT, isPrivileged, internalRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
-app.use("/test", (req, res) => {
+app.use("/test", async (req, res) => {
   sendResponse(res, 200, "success", "success", "test");
 });
 

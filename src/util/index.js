@@ -170,20 +170,34 @@ export function errorHandlerTransaction(fn) {
   };
 }
 
-export function errorHandlerTransactionPlain(fn) {
-  return async () => {
-    const client = await dbPool.connect();
-    try {
-      await client.query("BEGIN");
-      await fn(client);
-      await client.query("COMMIT");
-    } catch (error) {
-      await client.query("ROLLBACK");
-      console.log(error);
-    } finally {
-      client.release();
-    }
-  };
+export async function errorHandlerTransactionPlain(fn) {
+  const client = await dbPool.connect();
+  try {
+    await client.query("BEGIN");
+    await fn(client);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.log(error);
+  } finally {
+    client.release();
+  }
+}
+
+export async function errorHandlerTransactionPlainWithValue(fn) {
+  const client = await dbPool.connect();
+  try {
+    await client.query("BEGIN");
+    const data = await fn(client);
+    await client.query("COMMIT");
+    return data;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.log(error);
+    return null;
+  } finally {
+    client.release();
+  }
 }
 
 export function convertToPlainText(input) {
@@ -271,4 +285,26 @@ export function clearIsLoginCookie(res) {
     path: "/",
     sameSite: "None",
   });
+}
+
+export function calculateDaysTo(targetTime) {
+  const now = moment();
+  const target = moment(targetTime);
+
+  if (!target.isValid()) {
+    throw new Error("Invalid target time format.");
+  }
+
+  return target.diff(now, "days");
+}
+
+export default async function getUSDConversionRate() {
+  const url = "https://open.er-api.com/v6/latest/USD";
+  return fetch(url)
+    .then((response) => {
+      return response.json();
+    })
+    .catch((error) => {
+      console.error("USD API Convert Request Error:", error);
+    });
 }
