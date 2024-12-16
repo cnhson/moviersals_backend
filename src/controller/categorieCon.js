@@ -6,7 +6,6 @@ export const getAllCategories = errorHandler(async (req, res, next, client) => {
   let object = null;
 
   const page = Number(req.query.page) || null;
-  console.log(page);
   if (page != null || page != undefined) {
     const offset = getQueryOffset(page);
     const size = getPageSize();
