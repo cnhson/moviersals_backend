@@ -132,7 +132,7 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
 export const getMovieEpisode = errorHandler(async (req, res, next, client) => {
   const params = preProcessingUrlParam(req);
   const check = await client.query("SELECT ispremium FROM tbmovieinfo WHERE movieid = $1", [params.movieid]);
-  if (check.rowCount == 0) return sendResponse(res, 200, "success", "error", "Movie not exist");
+  if (check.rowCount == 0) return sendResponse(res, 200, "success", "error", "Bộ phim không tồn tại");
 
   const ispremium = check.rows[0].ispremium;
   const usercheck = await client.query("SELECT usingend FROM tbusersubscription WHERE userid = $1", [req.user.userid]);

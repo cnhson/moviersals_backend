@@ -1,18 +1,12 @@
-import bcrypt from "bcryptjs";
-import moment from "../../node_modules/moment/moment.js";
 import {
-  generateRandomString,
   sendResponse,
   getStringDatetimeNow,
-  getExtendDatetime,
-  errorHandlerTransaction,
   errorHandler,
   preProcessingBodyParam,
   getQueryOffset,
   getPageSize,
   getTotalPages,
 } from "../util/index.js";
-import { sendEmail } from "../services/mailer.js";
 import { favouriteSchema } from "../schema/index.js";
 
 export const addFavouriteEpisode = errorHandler(async (req, res, next, client) => {

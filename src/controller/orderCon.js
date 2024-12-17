@@ -50,7 +50,6 @@ export const createPaypalOrder = errorHandlerTransaction(async (req, res, next, 
     await handleUpdateUserSubscription(userid, params.subcriptionid, createddate, expiredate, orderid, "PAYPAL", price, "$");
     return sendResponse(res, 200, "success", "success", "Thanh toán Paypal thành công");
   }
-  console.log("Subcription not exist");
   return sendResponse(res, 200, "success", "error", "Thanh toán Paypal thất bại");
 });
 

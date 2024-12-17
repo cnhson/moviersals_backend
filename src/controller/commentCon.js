@@ -1,18 +1,12 @@
-import bcrypt from "bcryptjs";
-import moment from "../../node_modules/moment/moment.js";
 import {
-  generateRandomString,
   sendResponse,
   getStringDatetimeNow,
-  getExtendDatetime,
-  errorHandlerTransaction,
   errorHandler,
   preProcessingBodyParam,
   getQueryOffset,
   getPageSize,
   getTotalPages,
 } from "../util/index.js";
-import { sendEmail } from "../services/mailer.js";
 import { commentSchema } from "../schema/index.js";
 
 export const createComment = errorHandler(async (req, res, next, client) => {
