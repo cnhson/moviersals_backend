@@ -75,12 +75,18 @@ export const logoutAccount = errorHandler(async (req, res, next, client) => {
   return sendResponse(res, 200, "success", "success", "Đăng xuất thành công");
 });
 
-export const editAccountInfo = errorHandler(async (req, res, next, client) => {
+export const editAccountInfo = errorHandlerTransaction(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, accountSchema.editAccountParams);
   const userid = req.user.userid;
   let imageUrl = null;
   if (req.file) imageUrl = await uploadCloudImage(req.file);
 
+  const emailCheck = await client.query("SELECT email FROM tbuserinfo WHERE id = $1", [userid]);
+  if (emailCheck.rows[0].email != params.email) {
+    await client.query(`   UPDATE tbemailverification SET email = $2 WHERE userid = $1 `, [userid, params.email]);
+    await client.query(`   UPDATE tbpasswordreset SET email = $2 WHERE userid = $1`, [userid, params.email]);
+    await client.query(`   UPDATE tbuserinfo SET email = $2 WHERE id = $1 `, [userid, params.email]);
+  }
   const modifiedDateTime = getStringDatetimeNow();
   const result = await client.query(
     `UPDATE tbuserinfo 
@@ -259,7 +265,7 @@ export const createResetPasswordToken = errorHandler(async (req, res, next, clie
 
   const previouscheck = await client.query("SELECT * FROM tbpasswordreset WHERE email = $1", [params.email]);
   if (previouscheck.rowCount == 0) {
-    sendResponse(res, 200, "success", "error", "Email không tồn tại ở bất kỳ tài khoản nào");
+    return sendResponse(res, 200, "success", "error", "Email không tồn tại ở bất kỳ tài khoản nào");
   }
   const oldexpiredatetime = getConvertedDatetime(previouscheck.rows[0].expiredate);
 
