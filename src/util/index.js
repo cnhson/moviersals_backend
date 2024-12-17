@@ -278,7 +278,7 @@ export function setIsLoginCookie(res) {
 }
 
 export function clearIsLoginCookie(res) {
-  res.cookie("isLsoggedIn", "false", {
+  res.cookie("isLoggedIn", "false", {
     httpOnly: true,
     secure: true,
     expires: new Date(0),

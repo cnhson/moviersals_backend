@@ -340,7 +340,7 @@ export const getAllUser_ = errorHandler(async (req, res, next, client) => {
   return sendResponse(res, 200, "success", "success", object);
 });
 
-export const checkAuthenciation = errorHandler(async (req, res, next, client) => {
+export const checkAuthenciation = errorHandlerTransaction(async (req, res, next, client) => {
   const userid = req.user.userid;
   const userip = getReqIpAddress(req);
 
@@ -352,11 +352,15 @@ export const checkAuthenciation = errorHandler(async (req, res, next, client) =>
   }
 
   const premiumCheck = await client.query(
-    "SELECT EXISTS ( SELECT 1 FROM tbusersubscription t where t.usingend > NOW() and isactive = true and t.userid = $1) AS ispremium",
+    `   SELECT EXISTS ( SELECT 1 FROM tbusersubscription t where t.usingend > NOW() and isactive = true and t.userid = $1 ) AS ispremium, 
+   usingend from tbusersubscription t2 where t2.userid = $1`,
     [userid]
   );
 
   await client.query("update tbuserinfo set ispremium = " + premiumCheck.rows[0].ispremium + " where id = $1", [userid]);
+  if (premiumCheck.rows[0].usingend != null && premiumCheck.rows[0].ispremium == false) {
+    await client.query("update tbusersubscription set subcriptionid = 'FREE' where userid = $1", [userid]);
+  }
 
   const result = await client.query(
     `SELECT id,username,displayname,email,phonenumber,ispremium,role,createddate,ispremium,isverified,t2.subcriptionid,thumbnail, t2.usingend 

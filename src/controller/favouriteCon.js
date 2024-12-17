@@ -45,7 +45,7 @@ export const getUserFavouriteList = errorHandler(async (req, res, next, client) 
   const size = getPageSize();
   const result = await client.query(
     `WITH base_data AS (
-      SELECT t.id, t2.movieid, t2.name AS moviename, t2.publisher, t2.publishyear, t2.type,
+      SELECT t.id, t2.movieid, t2.name AS moviename, t2.publisher, t2.publishyear, t2.type, t2.thumbnail,
             t3.episodeid, t3.episodenumber, t3.name AS episodename, t.createddate
       FROM tbfavouritelist t
       JOIN tbmovieinfo t2 ON t.movieid = t2.movieid
