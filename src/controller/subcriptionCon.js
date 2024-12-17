@@ -28,7 +28,7 @@ export const getAllSubcriptionPlan = errorHandler(async (req, res, next, client)
 export const createSubcriptionPlan_ = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, subcriptionSchema.createSubcription_Params);
   await client.query(
-    "INSERT INTO tbsubcriptionplaninfo (subcriptionid, name, price, daysduration, baseprice, priority, quality, connection) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    "INSERT INTO tbsubcriptionplaninfo (subcriptionid, name, price, daysduration, baseprice, priority, quality, connection, isads) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)",
     [
       params.subcriptionid,
       params.name,

@@ -1,5 +1,5 @@
 import { statisticSchema } from "../schema/index.js";
-import { errorHandler, preProcessingBodyParam, sendResponse } from "../util/index.js";
+import { errorHandler, getPageSize, getQueryOffset, getTotalPages, preProcessingBodyParam, sendResponse } from "../util/index.js";
 
 export const getRangeDateRevenue = errorHandler(async (req, res, next, client) => {
   const params = preProcessingBodyParam(req, statisticSchema.getRevenue_Params);
@@ -49,9 +49,46 @@ export const getOtherStatistic = errorHandler(async (req, res, next, client) => 
                 'name', movie_name,
                 'total_views', total_views
             )
-        ) FROM TopMovies) AS top5_views;`,
+        ) FROM TopMovies) AS top_views;`,
     [limit]
   );
 
   sendResponse(res, 200, "success", "success", { list: result.rows });
+});
+
+export const getFilterMostSeenMovie = errorHandler(async (req, res, next, client) => {
+  const moviename = req.body.moviename || null;
+  const descSort = req.body.descSort;
+
+  const page = Number(req.body.page) || 1;
+  const size = getPageSize();
+  const offset = getQueryOffset(page);
+
+  const result = await client.query(
+    `WITH base_data AS (
+        SELECT 
+        t.id,
+        t.name AS movie_name,
+        COALESCE(SUM(t2.view), 0) AS total_views
+        FROM tbmovieinfo t
+        full JOIN tbmovieepisode t2 ON t.movieid = t2.movieid
+        where
+        ($3::text IS NULL OR t.name ILIKE CONCAT('%', $3, '%'))
+        GROUP BY t.id
+    ),
+    total AS (
+      SELECT COUNT(*) AS total_count FROM base_data
+    ),
+    data AS (
+      SELECT * FROM base_data order by total_views ${descSort ? "DESC" : "ASC"}
+      LIMIT $1 OFFSET $2
+    )
+    SELECT (SELECT total_count FROM total) AS total_count, json_agg(data) AS rows
+    FROM data;`,
+    [size, offset, moviename ? moviename : null]
+  );
+
+  const totalPages = getTotalPages(result.rows[0].total_count);
+  const object = { list: result.rows[0].rows, total: totalPages };
+  sendResponse(res, 200, "success", "success", object);
 });

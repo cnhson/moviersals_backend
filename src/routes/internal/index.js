@@ -48,5 +48,6 @@ router.post("/categorie/delete", categorieCon.deleteCategories_);
 //
 router.post("/statistic/getDateRaneRevenue", statisticCon.getRangeDateRevenue);
 router.get("/statistic/getOther", statisticCon.getOtherStatistic);
+router.post("/statistic/getMostSeen", statisticCon.getFilterMostSeenMovie);
 
 export default router;
