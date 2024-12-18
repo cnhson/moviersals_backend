@@ -198,7 +198,7 @@ export const editMovieInfo_ = errorHandlerTransaction(async (req, res, next, cli
 
   const modifiedDate = getStringDatetimeNow();
   await client.query(
-    "UPDATE tbmovieinfo SET name = $1, description = $2, publisher = $3, publishyear = $4, categories = $5, type = $6, ispremium = $7, modifieddate = $8 WHERE id = $9",
+    "UPDATE tbmovieinfo SET name = $1, description = $2, publisher = $3, publishyear = $4, categories = $5, type = $6, ispremium = $7, modifieddate = $8 WHERE movieid = $9",
     [
       params.name,
       params.description,
