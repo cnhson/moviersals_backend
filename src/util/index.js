@@ -290,8 +290,8 @@ export function clearIsLoginCookie(res) {
 }
 
 export function calculateDaysTo(targetTime) {
-  const now = moment();
-  const target = moment(targetTime);
+  const now = moment().tz("Asia/Ho_Chi_Minh");
+  const target = moment(targetTime).tz("Asia/Ho_Chi_Minh");
 
   if (!target.isValid()) {
     throw new Error("Invalid target time format.");
