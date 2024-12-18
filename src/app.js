@@ -54,7 +54,8 @@ app.use("/api", publicRoutes);
 app.use("/api/internal", authenticateJWT, isPrivileged, internalRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
 app.use("/test", async (req, res) => {
-  sendResponse(res, 200, "success", "success", "Test success");
+  let data = calculateDaysTo("2025-01-01 17:41:40.000Z");
+  sendResponse(res, 200, "success", "success", data);
 });
 
 // Invalid API path middleware
