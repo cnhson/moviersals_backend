@@ -7,7 +7,7 @@ import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
 import { sendResponse } from "./util/index.js";
-const moment = require("moment-timezone");
+import moment from "moment-timezone";
 
 const app = express();
 moment.tz.setDefault("Asia/Ho_Chi_Minh");
