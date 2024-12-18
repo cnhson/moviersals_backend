@@ -6,6 +6,8 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import path from "path";
 
+moment.tz.setDefault("Asia/Ho_Chi_Minh");
+
 class ValidationError extends Error {
   constructor(message) {
     super(message);
