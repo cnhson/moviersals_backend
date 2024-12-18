@@ -12,7 +12,10 @@ export const dbPool = new pg.Pool(
         database: process.env.DB_NAME,
       }
     : {
-        connectionString,
-        options: "-c timezone=Asia/Ho_Chi_Minh", // Specify the time zone
+        connectionString: `${connectionString}?timezone=Asia%2FHo_Chi_Minh`,
       }
 );
+
+dbPool.on("connect", (client) => {
+  client.query("SET TIMEZONE='Asia/Ho_Chi_Minh'"); // Set timezone on each connection
+});
