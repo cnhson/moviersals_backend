@@ -50,6 +50,4 @@ router.post("/livestream/get", livestreamCon.getLivestream);
 // Subscription
 router.get("/subcription/getUserPrice/:subcriptionid", subcriptionCon.getUserSubscriptionPrice);
 
-router.get("/test", orderCon.testFunc);
-
 export default router;

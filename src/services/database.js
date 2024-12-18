@@ -15,7 +15,3 @@ export const dbPool = new pg.Pool(
         connectionString: `${connectionString}?timezone=Asia%2FHo_Chi_Minh`,
       }
 );
-
-dbPool.on("connect", (client) => {
-  client.query("SET TIMEZONE='Asia/Ho_Chi_Minh'"); // Set timezone on each connection
-});

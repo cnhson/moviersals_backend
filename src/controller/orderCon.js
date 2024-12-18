@@ -107,7 +107,6 @@ export const createVNPayTransaction = errorHandlerTransaction(async (req, res, n
 
   const subcriptioninfo = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [params.subcriptionid]);
   if (subcriptioninfo.rowCount == 0) {
-    console.log("Subcription not exist: ", params.subcriptionid);
     return sendResponse(res, 200, "success", "error", "Mã gói dịch vụ không tồn tại");
   }
 
@@ -329,7 +328,7 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
     const daysduration = 30;
     const subcriptionCheck = await client.query(
       `SELECT 
-        userid, usingstart, usingend , t.subcriptionid, 
+        userid, usingstart, usingend  , t.subcriptionid, 
         CASE 
             WHEN usingend < NOW() THEN true 
             When usingend is null then true
@@ -358,30 +357,9 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
       currentSubcriptionId = subcriptionCheck.rows[0].subcriptionid;
       const unUseDays = calculateDaysTo(subcriptionCheck.rows[0].usingend);
       const unUseTotalPrice = ((unUseDays / daysduration) * subcriptionCheck.rows[0].price).toFixed(0);
-      console.log(subcriptionCheck.rows[0].usingend, check.rows[0].TimeZone);
       const newPrice = Number(newSubcriptionPrice) - Number(unUseTotalPrice) + upgradeFee;
       amountToPay = newPrice;
     }
 
     return amountToPay;
   });
-
-export const testFunc = errorHandlerTransaction(async (req, res, next, client) => {
-  const subcriptionCheck = await client.query(
-    `SELECT 
-        userid, usingstart, usingend , t.subcriptionid, 
-        CASE 
-            WHEN usingend < NOW() THEN true 
-            When usingend is null then true
-            ELSE false 
-        END AS isexpired,
-        t2.price
-        FROM tbusersubscription t 
-        join tbsubcriptionplaninfo t2 on t.subcriptionid  = t2.subcriptionid 
-        where t.userid = $1
-      `,
-    [req.user.userid]
-  );
-
-  return sendResponse(res, 200, "success", "success", subcriptionCheck.rows[0].usingend);
-});
