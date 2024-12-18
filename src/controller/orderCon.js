@@ -342,6 +342,7 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
       `,
       [userid]
     );
+    const check = await client.query("SHOW TIMEZONE");
     const newSubcription = await client.query("select * from tbsubcriptionplaninfo where subcriptionid = $1", [new_subcriptionid]);
     const newSubcriptionPrice = newSubcription.rows[0].price;
 
@@ -357,7 +358,7 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
       currentSubcriptionId = subcriptionCheck.rows[0].subcriptionid;
       const unUseDays = calculateDaysTo(subcriptionCheck.rows[0].usingend);
       const unUseTotalPrice = ((unUseDays / daysduration) * subcriptionCheck.rows[0].price).toFixed(0);
-      console.log(unUseDays, unUseDays / daysduration, subcriptionCheck.rows[0].price, unUseTotalPrice);
+      console.log(subcriptionCheck.rows[0].usingend, check.rows[0].TimeZone);
       const newPrice = Number(newSubcriptionPrice) - Number(unUseTotalPrice) + upgradeFee;
       amountToPay = newPrice;
     }
