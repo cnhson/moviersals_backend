@@ -13,5 +13,6 @@ export const dbPool = new pg.Pool(
       }
     : {
         connectionString,
+        options: "-c timezone=Asia/Ho_Chi_Minh", // Specify the time zone
       }
 );
