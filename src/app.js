@@ -6,7 +6,7 @@ import internalRoutes from "./routes/internal/index.js";
 import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
-import { sendResponse } from "./util/index.js";
+import { calculateDaysTo, sendResponse } from "./util/index.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -54,7 +54,8 @@ app.use("/api", publicRoutes);
 app.use("/api/internal", authenticateJWT, isPrivileged, internalRoutes);
 app.use("/api/protected", authenticateJWT, privateRoutes);
 app.use("/test", async (req, res) => {
-  sendResponse(res, 200, "success", "success", "test");
+  let data = calculateDaysTo("2025-01-01 17:41:40.000");
+  sendResponse(res, 200, "success", "success", data);
 });
 
 // Invalid API path middleware
