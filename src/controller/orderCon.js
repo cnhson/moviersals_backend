@@ -329,7 +329,7 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
     const daysduration = 30;
     const subcriptionCheck = await client.query(
       `SELECT 
-        userid, usingstart, usingend, t.subcriptionid, 
+        userid, usingstart, usingend , t.subcriptionid, 
         CASE 
             WHEN usingend < NOW() THEN true 
             When usingend is null then true
@@ -363,3 +363,23 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
 
     return amountToPay;
   });
+
+export const testFunc = errorHandlerTransaction(async (req, res, next, client) => {
+  const subcriptionCheck = await client.query(
+    `SELECT 
+        userid, usingstart, usingend , t.subcriptionid, 
+        CASE 
+            WHEN usingend < NOW() THEN true 
+            When usingend is null then true
+            ELSE false 
+        END AS isexpired,
+        t2.price
+        FROM tbusersubscription t 
+        join tbsubcriptionplaninfo t2 on t.subcriptionid  = t2.subcriptionid 
+        where t.userid = $1
+      `,
+    [req.user.userid]
+  );
+
+  return sendResponse(res, 200, "success", "success", subcriptionCheck.rows[0].usingend);
+});
