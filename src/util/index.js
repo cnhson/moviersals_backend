@@ -87,15 +87,15 @@ export function getDatetimeNow() {
 }
 
 export function getConvertedDatetime(date) {
-  return moment(date).tz("Asia/Ho_Chi_Minh");
+  return moment.utc(date).tz("Asia/Ho_Chi_Minh");
 }
 
 export function getInputVNPayDatetimeNow(date) {
-  return moment(date).tz("Asia/Ho_Chi_Minh").format("YYYYMMDDHHmmss");
+  return moment.utc(date).tz("Asia/Ho_Chi_Minh").format("YYYYMMDDHHmmss");
 }
 
 export function getInputStringDatetimeNow(date) {
-  return moment(date).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm:ss");
+  return moment.utc(date).tz("Asia/Ho_Chi_Minh").format("YYYY-MM-DD HH:mm:ss");
 }
 
 export function convertVnPayDatetime(date) {
@@ -112,13 +112,15 @@ export function getExtendDatetime(day, hour, minute) {
 }
 
 export function getInputExtendDatetime(inputdate, day, hour, minute) {
-  const baseDatetime = inputdate ? moment(inputdate, "YYYY-MM-DD HH:mm:ss.SSS").tz("Asia/Ho_Chi_Minh") : moment().tz("Asia/Ho_Chi_Minh");
+  const baseDatetime = inputdate
+    ? moment.utc(inputdate, "YYYY-MM-DD HH:mm:ss.SSS").tz("Asia/Ho_Chi_Minh")
+    : moment().tz("Asia/Ho_Chi_Minh");
 
   return baseDatetime.add(Number(day), "days").add(Number(hour), "hours").add(Number(minute), "minutes").format("YYYY-MM-DD HH:mm:ss");
 }
 
 export function convertToMoment(date) {
-  return moment(date).tz("Asia/Ho_Chi_Minh");
+  return moment.utc(date).tz("Asia/Ho_Chi_Minh");
 }
 
 export function getReqIpAddress(req) {
@@ -291,7 +293,7 @@ export function clearIsLoginCookie(res) {
 
 export function calculateDaysTo(targetTime) {
   const now = moment().tz("Asia/Ho_Chi_Minh");
-  const target = moment(targetTime).tz("Asia/Ho_Chi_Minh");
+  const target = moment.utc(targetTime).tz("Asia/Ho_Chi_Minh");
 
   if (!target.isValid()) {
     throw new Error("Invalid target time format.");
