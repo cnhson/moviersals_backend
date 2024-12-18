@@ -357,6 +357,7 @@ export const getAmountToPay = async (userid, new_subcriptionid) =>
       currentSubcriptionId = subcriptionCheck.rows[0].subcriptionid;
       const unUseDays = calculateDaysTo(subcriptionCheck.rows[0].usingend);
       const unUseTotalPrice = ((unUseDays / daysduration) * subcriptionCheck.rows[0].price).toFixed(0);
+      console.log(unUseDays / daysduration, subcriptionCheck.rows[0].price, unUseTotalPrice);
       const newPrice = Number(newSubcriptionPrice) - Number(unUseTotalPrice) + upgradeFee;
       amountToPay = newPrice;
     }
