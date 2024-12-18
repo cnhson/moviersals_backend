@@ -54,7 +54,7 @@ export const getMovieList = errorHandler(async (req, res, next, client) => {
         LEFT JOIN LATERAL 
             JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
         LEFT JOIN 
-            tbcategoriesinfo tc ON category_name = tc.name
+            tbcategoriesinfo tc ON category_name ILIKE tc.name
         GROUP BY 
             t.id
     ),
@@ -118,7 +118,7 @@ export const getMovieDetail = errorHandler(async (req, res, next, client) => {
       LEFT JOIN LATERAL 
           JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
       LEFT JOIN 
-          tbcategoriesinfo tc ON category_name = tc.name
+          tbcategoriesinfo tc ON category_name ILIKE tc.name
       WHERE 
           t.movieid = $1
       GROUP BY 
@@ -235,53 +235,65 @@ export const categoriesFilter = errorHandler(async (req, res, next, client) => {
   const offset = getQueryOffset(page);
 
   const result = await client.query(
-    `WITH base_data AS (
-        WITH total_views AS (
-              SELECT 
-                  SUM(view) AS total_view
-              FROM 
-                  tbmovieepisode
-              where movieid = $3
-          ),
-          avg_ratings AS (
-              SELECT 
-                  AVG(t.rating)::float AS avg_rating
-              FROM 
-                  tbmoviecomment t 
-              where movieid = $3 and isactive = true
-          )
+    `WITH total_views AS (
           SELECT 
-              t.*,
-              (select * from total_views) as view,
-              (select * from avg_ratings) as avgrating,
-              JSON_AGG(tc.namevi ORDER BY category_name)::text AS categoriesvi
+              t2.movieid,
+              SUM(view) AS total_view
+          FROM 
+              tbmovieepisode t
+          JOIN 
+              tbmovieinfo t2 ON t.movieid = t2.movieid
+          GROUP BY 
+              t2.movieid
+      ),
+      avg_ratings AS (
+          SELECT 
+              t2.movieid,
+              AVG(t.rating)::float AS avg_rating
+          FROM 
+              tbmoviecomment t
+          JOIN 
+              tbmovieinfo t2 ON t.movieid = t2.movieid
+          WHERE 
+              t.isactive = true
+          GROUP BY 
+              t2.movieid
+      ),
+      base_data AS (
+          SELECT 
+              t.*, 
+              COALESCE(tv.total_view, 0) AS view,
+              COALESCE(ar.avg_rating, 0) AS avgrating,
+              JSON_AGG(tc.namevi ORDER BY category_name) AS categoriesvi
           FROM 
               tbmovieinfo t
-        LEFT JOIN LATERAL 
-                JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
           LEFT JOIN 
-                tbcategoriesinfo tc ON category_name = tc.name
+              total_views tv ON tv.movieid = t.movieid
+          LEFT JOIN 
+              avg_ratings ar ON ar.movieid = t.movieid
+          LEFT JOIN LATERAL 
+              JSONB_ARRAY_ELEMENTS_TEXT(t.categories::JSONB) AS category_name ON TRUE
+          LEFT JOIN 
+              tbcategoriesinfo tc ON category_name ILIKE tc.name
           WHERE
               ($3::text IS NULL OR t.name ILIKE CONCAT('%', $3, '%'))
-              AND
-              ($4::text IS NULL OR t.publishyear = $4)
-              AND
-              ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
-              AND
-              ($6::boolean IS NULL OR t.ispremium = $6)
-          group by t.id
-        ),
-        total AS (
+              AND ($4::text IS NULL OR t.publishyear = $4)
+              AND ($5::jsonb IS NULL OR t.categories::jsonb @> $5::jsonb)
+              AND ($6::boolean IS NULL OR t.ispremium = $6)
+          GROUP BY 
+              t.id, tv.total_view, avg_rating
+      ),
+      total AS (
           SELECT COUNT(*) AS total_count FROM base_data
-        ),
-        data AS (
+      ),
+      data AS (
           SELECT * FROM base_data
           LIMIT $1 OFFSET $2
-        )
-        SELECT 
-            (SELECT total_count FROM total) AS total_count, 
-            json_agg(data) AS rows
-        FROM data;`,
+      )
+      SELECT 
+          (SELECT total_count FROM total) AS total_count, 
+          json_agg(data) AS rows
+      FROM data;`,
     [
       size,
       offset,
