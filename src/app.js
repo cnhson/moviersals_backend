@@ -7,8 +7,10 @@ import { isPrivileged, authenticateJWT } from "./middleware/index.js";
 import cookieParser from "cookie-parser";
 import { dbPool } from "./services/database.js";
 import { sendResponse } from "./util/index.js";
+const moment = require("moment-timezone");
 
 const app = express();
+moment.tz.setDefault("Asia/Ho_Chi_Minh");
 const PORT = Number(process.env.PORT) || 4000;
 const HOST = process.env.SERVER_HOST || "127.0.0.1";
 const allowedOrigins = JSON.parse(process.env.ALLOW_ORIGINS);
